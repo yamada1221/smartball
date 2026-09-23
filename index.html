@@ -284,7 +284,7 @@ button:active{transform:translateY(2px);box-shadow:none}
   </div>
 
   <div class="help">
-    4×4の16個の窪みを埋めるスマートボールです。穴は前版より半径5px広くしています。右下のレバーは5.00〜100.00%の無段階強度で操作できます。発射レーンを右側へ上がった玉は、上部の外側アーチレールに当たりながら自然に盤面へ入ります。アーチでは玉を固定せず、外側の壁との通常の衝突だけを使います。発射ボタンは短く押すと標準ショット、長押しで強度を調整できます。精密強度欄では0.01%単位で直接指定できます。
+    4×4の16個の窪みを埋めるスマートボールです。右下のレバーは5.00〜100.00%の無段階強度で操作できます。発射レーンを右側へ上がった玉は、上部の外側アーチレールに当たりながら自然に盤面へ入ります。アーチでは玉を固定せず、外側の壁との通常の衝突だけを使います。発射ボタンは短く押すと標準ショット、長押しで強度を調整できます。精密強度欄では0.01%単位で直接指定できます。
     <br><br>
     <strong>EASY</strong> は穴を少し大きくし、穴の縁から約20pxだけ内向きの傾斜を付けた遊びやすい設定です。
     <strong>NORMAL</strong> は現在の17px穴＋10px傾斜です。
@@ -463,6 +463,7 @@ button:active{transform:translateY(2px);box-shadow:none}
   let wobblePhase = 0;
 
   let leverPull = 0;
+  let firstLaunchHintVisible = true;
   let draggingLever = false;
   let pointerStartY = 0;
   let leverStart = 0;
@@ -780,6 +781,7 @@ button:active{transform:translateY(2px);box-shadow:none}
       power = quantizeStage4Power(power);
     }
     ballsLeft--;
+    firstLaunchHintVisible = false;
 
     activeBalls.push({
       x: 545,
@@ -1348,7 +1350,8 @@ button:active{transform:translateY(2px);box-shadow:none}
            (aiLastPlan.predictedHit ? ' / HIT確認済' : ' / 最接近'))
         : 'AI AUTO / 0.25%探索→0.01%精密化';
       gameStatusDetailEl.textContent = aiInfo;
-    }else if(canLaunch() &&
+    }else if(firstLaunchHintVisible &&
+             canLaunch() &&
              activeBalls.length===0 &&
              !autoLaunch &&
              !buttonCharging &&

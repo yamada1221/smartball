@@ -289,7 +289,7 @@ button:active{transform:translateY(2px);box-shadow:none}
     <strong>EASY</strong> は穴を少し大きくし、穴の縁から約20pxだけ内向きの傾斜を付けた遊びやすい設定です。
     <strong>NORMAL</strong> は現在の17px穴＋10px傾斜です。
     <strong>VERY HARD</strong> は穴まわりの傾斜を完全になくした高難度設定です。
-    AI AUTOは人間と同じ発射強度と台の物理設定を使います。VERY HARDでは必要に応じて下方向・左右の傾きを実際のスライダー範囲内で変更してから発射し、途中で軌道を補正しません。
+    AI AUTOは人間と同じ発射強度と台の物理設定を使います。必要に応じて下方向・左右の傾きを実際のスライダー範囲内で変更してから発射し、途中で軌道を補正しません。
     <div class="legend">
       <span class="badge">1穴 100点</span>
       <span class="badge">1列完成 300点 +1球</span>
@@ -477,26 +477,64 @@ button:active{transform:translateY(2px);box-shadow:none}
   let aiTargetIndex = -1;
   let aiLastPlan = null;
 
-  // VERY HARDの標準盤面で実ゲーム物理による16/16を確認済みのAIルート。
+  // 標準盤面で実ゲーム物理による16/16を確認済みのAIルート。
   // AIは人間と同じUI範囲の台設定と発射強度だけを使う。
-  const VERY_HARD_AI_ROUTE = [
-    {beforeMask:0x0000,targetIndex:0, power:.98,tiltDown:.140,tiltSide: .000},
-    {beforeMask:0x0001,targetIndex:1, power:.86,tiltDown:.140,tiltSide: .020},
-    {beforeMask:0x0003,targetIndex:4, power:.48,tiltDown:.140,tiltSide:-.040},
-    {beforeMask:0x0013,targetIndex:12,power:.40,tiltDown:.220,tiltSide:-.020},
-    {beforeMask:0x1013,targetIndex:14,power:.26,tiltDown:.180,tiltSide:-.020},
-    {beforeMask:0x5013,targetIndex:6, power:.88,tiltDown:.100,tiltSide: .040},
-    {beforeMask:0x5053,targetIndex:11,power:.12,tiltDown:.140,tiltSide:-.020},
-    {beforeMask:0x5853,targetIndex:13,power:.38,tiltDown:.140,tiltSide: .020},
-    {beforeMask:0x7853,targetIndex:3, power:.32,tiltDown:.300,tiltSide:-.020},
-    {beforeMask:0x785b,targetIndex:7, power:.40,tiltDown:.300,tiltSide: .040},
-    {beforeMask:0x78db,targetIndex:2, power:.74,tiltDown:.260,tiltSide: .020},
-    {beforeMask:0x78df,targetIndex:15,power:.78,tiltDown:.180,tiltSide: .020},
-    {beforeMask:0xf8df,targetIndex:5, power:.26,tiltDown:.140,tiltSide:-.020},
-    {beforeMask:0xf8ff,targetIndex:8, power:.92,tiltDown:.180,tiltSide:-.040},
-    {beforeMask:0xf9ff,targetIndex:9, power:.66,tiltDown:.180,tiltSide:-.020},
-    {beforeMask:0xfbff,targetIndex:10,power:.10,tiltDown:.100,tiltSide: .000},
-  ];
+  const VERIFIED_AI_ROUTES = {
+    0: [
+      {beforeMask:0x0000,targetIndex:0, power:.49,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x0001,targetIndex:1, power:.29,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x0003,targetIndex:2, power:.07,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x0007,targetIndex:3, power:.19,tiltDown:.100,tiltSide: .020},
+      {beforeMask:0x000f,targetIndex:4, power:.39,tiltDown:.100,tiltSide:-.040},
+      {beforeMask:0x001f,targetIndex:5, power:.27,tiltDown:.100,tiltSide:-.040},
+      {beforeMask:0x003f,targetIndex:6, power:.13,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x007f,targetIndex:7, power:.09,tiltDown:.100,tiltSide: .000},
+      {beforeMask:0x00ff,targetIndex:8, power:.21,tiltDown:.100,tiltSide:-.040},
+      {beforeMask:0x01ff,targetIndex:9, power:.37,tiltDown:.100,tiltSide:-.040},
+      {beforeMask:0x03ff,targetIndex:10,power:.11,tiltDown:.100,tiltSide:-.040},
+      {beforeMask:0x07ff,targetIndex:11,power:.07,tiltDown:.100,tiltSide: .000},
+      {beforeMask:0x0fff,targetIndex:12,power:.39,tiltDown:.100,tiltSide:-.040},
+      {beforeMask:0x1fff,targetIndex:13,power:.21,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x3fff,targetIndex:14,power:.07,tiltDown:.100,tiltSide: .000},
+      {beforeMask:0x7fff,targetIndex:15,power:.25,tiltDown:.100,tiltSide: .020},
+    ],
+    1: [
+      {beforeMask:0x0000,targetIndex:14,power:.31,tiltDown:.140,tiltSide: .000},
+      {beforeMask:0x4000,targetIndex:11,power:.09,tiltDown:.140,tiltSide: .000},
+      {beforeMask:0x4800,targetIndex:13,power:.93,tiltDown:.180,tiltSide: .040},
+      {beforeMask:0x6800,targetIndex:0, power:.49,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x6801,targetIndex:1, power:.29,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x6803,targetIndex:2, power:.09,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x6807,targetIndex:8, power:.47,tiltDown:.180,tiltSide:-.020},
+      {beforeMask:0x6907,targetIndex:3, power:.21,tiltDown:.100,tiltSide: .020},
+      {beforeMask:0x690f,targetIndex:4, power:.21,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x691f,targetIndex:5, power:.29,tiltDown:.100,tiltSide:-.040},
+      {beforeMask:0x693f,targetIndex:12,power:.83,tiltDown:.100,tiltSide: .020},
+      {beforeMask:0x793f,targetIndex:6, power:.33,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x797f,targetIndex:7, power:.11,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x79ff,targetIndex:9, power:.17,tiltDown:.100,tiltSide:-.020},
+      {beforeMask:0x7bff,targetIndex:10,power:.29,tiltDown:.100,tiltSide: .000},
+      {beforeMask:0x7fff,targetIndex:15,power:.53,tiltDown:.100,tiltSide: .040},
+    ],
+    2: [
+      {beforeMask:0x0000,targetIndex:0, power:.98,tiltDown:.140,tiltSide: .000},
+      {beforeMask:0x0001,targetIndex:1, power:.86,tiltDown:.140,tiltSide: .020},
+      {beforeMask:0x0003,targetIndex:4, power:.48,tiltDown:.140,tiltSide:-.040},
+      {beforeMask:0x0013,targetIndex:12,power:.40,tiltDown:.220,tiltSide:-.020},
+      {beforeMask:0x1013,targetIndex:14,power:.26,tiltDown:.180,tiltSide:-.020},
+      {beforeMask:0x5013,targetIndex:6, power:.88,tiltDown:.100,tiltSide: .040},
+      {beforeMask:0x5053,targetIndex:11,power:.12,tiltDown:.140,tiltSide:-.020},
+      {beforeMask:0x5853,targetIndex:13,power:.38,tiltDown:.140,tiltSide: .020},
+      {beforeMask:0x7853,targetIndex:3, power:.32,tiltDown:.300,tiltSide:-.020},
+      {beforeMask:0x785b,targetIndex:7, power:.40,tiltDown:.300,tiltSide: .040},
+      {beforeMask:0x78db,targetIndex:2, power:.74,tiltDown:.260,tiltSide: .020},
+      {beforeMask:0x78df,targetIndex:15,power:.78,tiltDown:.180,tiltSide: .020},
+      {beforeMask:0xf8df,targetIndex:5, power:.26,tiltDown:.140,tiltSide:-.020},
+      {beforeMask:0xf8ff,targetIndex:8, power:.92,tiltDown:.180,tiltSide:-.040},
+      {beforeMask:0xf9ff,targetIndex:9, power:.66,tiltDown:.180,tiltSide:-.020},
+      {beforeMask:0xfbff,targetIndex:10,power:.10,tiltDown:.100,tiltSide: .000},
+    ]
+  };
 
   let audioCtx = null;
   let lastPegSoundAt = 0;
@@ -1846,10 +1884,12 @@ button:active{transform:translateY(2px);box-shadow:none}
     ));
   }
 
-  function planVeryHardPhysicsShot(){
-    if(stageIndex !== 2 || !isDefaultCupPegLayout()) return null;
+  function planVerifiedPhysicsShot(){
+    if(!isCupStage() || !isDefaultCupPegLayout()) return null;
+    const route=VERIFIED_AI_ROUTES[stageIndex];
+    if(!route) return null;
     const mask=currentDimpleMask();
-    const step=VERY_HARD_AI_ROUTE.find(x => x.beforeMask===mask);
+    const step=route.find(x => x.beforeMask===mask);
     if(!step || dimples[step.targetIndex]?.filled) return null;
 
     return {
@@ -2063,8 +2103,8 @@ button:active{transform:translateY(2px);box-shadow:none}
       return {power:.74,targetIndex:-1,predictedHit:false,exactPowerOnly:true};
     }
 
-    const veryHardPlan=planVeryHardPhysicsShot();
-    if(veryHardPlan) return veryHardPlan;
+    const verifiedPlan=planVerifiedPhysicsShot();
+    if(verifiedPlan) return verifiedPlan;
 
     const unfilled=dimples.map((d,i)=>d.filled?-1:i).filter(i=>i>=0);
     if(!unfilled.length) return null;

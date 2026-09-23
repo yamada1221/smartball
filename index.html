@@ -1,0 +1,2425 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>スマートボール 4×4</title>
+<style>
+:root{
+  --bg1:#17101f;
+  --bg2:#2d1837;
+  --gold:#f4c95a;
+  --cream:#fff4d6;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  min-height:100%;
+  background:radial-gradient(circle at top,#3b2147 0,#24152c 38%,#120d17 100%);
+  color:var(--cream);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  overscroll-behavior:none;
+}
+body{display:flex;justify-content:center;padding:12px}
+.app{width:min(100%,580px)}
+.top{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin-bottom:8px;
+}
+.stat{
+  background:#ffffff12;
+  border:1px solid #ffffff20;
+  border-radius:13px;
+  text-align:center;
+  padding:7px 6px;
+  box-shadow:inset 0 1px 0 #ffffff15;
+}
+.stat span{display:block;font-size:.72rem;letter-spacing:.08em;color:#d9c7df}
+.stat b{display:block;font-size:1.2rem;color:var(--gold)}
+.wrap{
+  position:relative;
+  border:2px solid #765390;
+  border-radius:20px;
+  overflow:hidden;
+  background:#120d17;
+  box-shadow:0 18px 45px #0009;
+}
+canvas{
+  display:block;
+  width:100%;
+  height:auto;
+  aspect-ratio:3/4;
+  touch-action:none;
+}
+.controls{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+  margin-top:10px;
+}
+.controls2{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin-top:8px;
+}
+.airow{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+  margin-top:8px;
+}
+.airow button{
+  font-size:1rem;
+  letter-spacing:.03em;
+}
+button,select{
+  border:0;
+  border-radius:13px;
+  padding:11px 8px;
+  font-weight:800;
+  font-size:.92rem;
+  cursor:pointer;
+}
+button{
+  background:linear-gradient(#ffe37b,#efb82b);
+  color:#33220b;
+  box-shadow:0 4px 0 #98701a;
+}
+button:active{transform:translateY(2px);box-shadow:none}
+.secondary{
+  background:linear-gradient(#795790,#523462);
+  color:white;
+  box-shadow:0 4px 0 #321b3d;
+}
+.info{
+  background:linear-gradient(#607c9b,#3a526b);
+  color:white;
+  box-shadow:0 4px 0 #243647;
+}
+.info.on{
+  background:linear-gradient(#ffdb7a,#e8a935);
+  color:#3c2808;
+  box-shadow:0 4px 0 #94691b;
+}
+.success{
+  background:linear-gradient(#77d28b,#3d9855);
+  color:#102916;
+  box-shadow:0 4px 0 #276838;
+}
+.help{
+  margin:10px 3px 0;
+  color:#d9ccdf;
+  line-height:1.55;
+  font-size:.88rem;
+}
+.legend{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:7px;
+  font-size:.78rem;
+  color:#cbb9d4;
+}
+.badge{
+  padding:4px 7px;
+  border-radius:999px;
+  background:#ffffff0e;
+  border:1px solid #ffffff16;
+}
+.note{
+  margin-top:6px;
+  font-size:.78rem;
+  color:#bfb0c9;
+}
+
+.settings-panel{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  background:#ffffff0d;
+  border:1px solid #ffffff18;
+}
+.settings-title{
+  font-weight:800;
+  color:#ffe7a0;
+  margin-bottom:8px;
+}
+.settings-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px 12px;
+}
+.setting{
+  min-width:0;
+}
+.setting label{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  font-size:.78rem;
+  color:#d7cadf;
+  margin-bottom:4px;
+}
+.setting input[type="range"]{
+  width:100%;
+  accent-color:#efbe42;
+}
+.setting-output{
+  color:#ffe7a0;
+  font-variant-numeric:tabular-nums;
+}
+@media (max-width:480px){
+  .settings-grid{grid-template-columns:1fr}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="stat"><span>SCORE</span><b id="score">0</b></div>
+    <div class="stat"><span>BALL</span><b id="balls">15</b></div>
+    <div class="stat"><span>BEST</span><b id="best">0</b></div>
+    <div class="stat"><span>TIME</span><b id="time">--</b></div>
+  </div>
+
+  <div class="wrap">
+    <canvas id="game" width="600" height="800"></canvas>
+  </div>
+
+  <div class="controls">
+    <button id="launch">発射</button>
+    <button id="auto" class="secondary">AUTO OFF</button>
+    <button id="editMode" class="info">釘編集 OFF</button>
+    <button id="editTool" class="secondary">移動</button>
+    <button id="restart" class="secondary">やり直す</button>
+  </div>
+
+  <div class="controls2">
+    <button id="timerMode" class="secondary">通常モード</button>
+    <select id="stageSelect">
+      <option value="0">NORMAL・10px傾斜</option>
+      <option value="1">VERY HARD・無傾斜</option>
+    </select>
+    <button id="saveLayout" class="info">配置保存</button>
+    <button id="clearLayout" class="secondary">配置初期化</button>
+  </div>
+
+  <div class="airow">
+    <button id="aiAuto" class="info">AI AUTO OFF</button>
+  </div>
+
+  <div class="precision-row">
+    <label class="precision-box">
+      精密強度
+      <input id="precisionPower" type="number" min="5.00" max="100.00" step="0.01" value="50.00" inputmode="decimal">
+      %
+    </label>
+    <button id="precisionFire" class="secondary">0.01%精密発射</button>
+  </div>
+
+
+  <div class="settings-panel">
+    <div class="settings-title">台の物理設定</div>
+    <div class="settings-grid">
+      <div class="setting">
+        <label for="tiltDown">下方向の傾き <span id="tiltDownValue" class="setting-output">0.160</span></label>
+        <input id="tiltDown" type="range" min="0.100" max="0.300" step="0.001" value="0.160">
+      </div>
+      <div class="setting">
+        <label for="tiltSide">左右の傾き <span id="tiltSideValue" class="setting-output">0.000</span></label>
+        <input id="tiltSide" type="range" min="-0.040" max="0.040" step="0.001" value="0.000">
+      </div>
+      <div class="setting">
+        <label for="wobbleStrength">ゆらぎの強さ <span id="wobbleStrengthValue" class="setting-output">0.000</span></label>
+        <input id="wobbleStrength" type="range" min="0.000" max="0.030" step="0.001" value="0.000">
+      </div>
+      <div class="setting">
+        <label for="wobblePeriod">ゆらぎ周期 <span id="wobblePeriodValue" class="setting-output">6.0秒</span></label>
+        <input id="wobblePeriod" type="range" min="2.0" max="12.0" step="0.5" value="6.0">
+      </div>
+    </div>
+  </div>
+
+  <div class="help">
+    4×4の16個の窪みを埋めるスマートボールです。穴は前版より半径5px広くしています。右下のレバーは5.00〜100.00%の無段階強度で操作できます。発射レーンを右側へ上がった玉は、上部の外側アーチレールに当たりながら自然に盤面へ入ります。アーチでは玉を固定せず、外側の壁との通常の衝突だけを使います。発射ボタンは短く押すと標準ショット、長押しで強度を調整できます。精密強度欄では0.01%単位で直接指定できます。
+    <br><br>
+    <strong>NORMAL</strong> は各穴の縁から約10pxだけ内向きの傾斜があり、人間でも狙った穴へ入りやすい設定です。
+    <strong>VERY HARD</strong> は穴まわりの傾斜を完全になくした従来の高難度設定です。
+    AI AUTOも人間と同じ発射強度だけを使い、途中で軌道を補正しません。
+    <div class="legend">
+      <span class="badge">1穴 100点</span>
+      <span class="badge">1列完成 300点 +1球</span>
+      <span class="badge">16穴完成 2000点 +5球</span>
+      <span class="badge">AI / 手動とも0.01%精密発射</span>
+    </div>
+    <div class="note">各穴の下には釘が1本あります。NORMALの10px傾斜は穴のすぐ近くだけに作用し、穴と穴の間には影響しません。デフォルトは下方向0.160・左右0.000・ゆらぎ0で、左右に台を傾けなくても16穴すべてへ届くよう発射速度を調整しています。VERY HARDでは局所傾斜はありません。</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  const scoreEl = document.getElementById('score');
+  const ballsEl = document.getElementById('balls');
+  const bestEl = document.getElementById('best');
+  const timeEl = document.getElementById('time');
+
+  const launchBtn = document.getElementById('launch');
+  const autoBtn = document.getElementById('auto');
+  const aiAutoBtn = document.getElementById('aiAuto');
+  const precisionPowerInput = document.getElementById('precisionPower');
+  const precisionFireBtn = document.getElementById('precisionFire');
+  const tiltDownInput = document.getElementById('tiltDown');
+  const tiltSideInput = document.getElementById('tiltSide');
+  const wobbleStrengthInput = document.getElementById('wobbleStrength');
+  const wobblePeriodInput = document.getElementById('wobblePeriod');
+  const tiltDownValue = document.getElementById('tiltDownValue');
+  const tiltSideValue = document.getElementById('tiltSideValue');
+  const wobbleStrengthValue = document.getElementById('wobbleStrengthValue');
+  const wobblePeriodValue = document.getElementById('wobblePeriodValue');
+  const editModeBtn = document.getElementById('editMode');
+  const editToolBtn = document.getElementById('editTool');
+  const restartBtn = document.getElementById('restart');
+  const timerModeBtn = document.getElementById('timerMode');
+  const stageSelect = document.getElementById('stageSelect');
+  const saveLayoutBtn = document.getElementById('saveLayout');
+  const clearLayoutBtn = document.getElementById('clearLayout');
+
+  const W = canvas.width, H = canvas.height;
+  const MAX_ACTIVE_BALLS = 40;
+  const STAGE4_MIN_POWER = 0.05;
+  const STAGE4_POWER_STEP = 0.0001; // 0.01%
+
+  function quantizeStage4Power(power){
+    const clamped = Math.max(STAGE4_MIN_POWER, Math.min(1, Number(power) || STAGE4_MIN_POWER));
+    return Math.round(clamped / STAGE4_POWER_STEP) * STAGE4_POWER_STEP;
+  }
+
+  function stage4LaunchVx(power){
+    const p = quantizeStage4Power(power);
+    // 左右傾き0でも左右4列へ散るように調整。
+    return -0.02 - 0.30 * p;
+  }
+
+  function stage4LaunchVy(power){
+    const p = quantizeStage4Power(power);
+    const spread = Math.pow(p, 1.08);
+    // 強すぎる上向き速度を抑え、盤面全域へ自然に分散させる。
+    return -(4.5 + 5.0 * spread);
+  }
+
+  function outerArchPoint(t){
+    // 外側1本だけの大きなアーチ。
+    // 玉はこの曲線に吸着せず、接触した時だけ通常の反射をする。
+    const u = 1 - t;
+    const p0 = {x:565, y:185};
+    const p1 = {x:565, y:28};
+    const p2 = {x:44,  y:28};
+    const p3 = {x:44,  y:145};
+
+    return {
+      x:
+        u*u*u*p0.x +
+        3*u*u*t*p1.x +
+        3*u*t*t*p2.x +
+        t*t*t*p3.x,
+      y:
+        u*u*u*p0.y +
+        3*u*u*t*p1.y +
+        3*u*t*t*p2.y +
+        t*t*t*p3.y
+    };
+  }
+
+  function buildOuterArchRails(){
+    const segments = 48;
+    let prev = outerArchPoint(0);
+
+    for(let i=1;i<=segments;i++){
+      const cur = outerArchPoint(i/segments);
+      rails.push({
+        x1:prev.x,
+        y1:prev.y,
+        x2:cur.x,
+        y2:cur.y,
+        w:7,
+        outerArch:true
+      });
+      prev = cur;
+    }
+  }
+
+  // 右側発射レールの実際の出口。
+  // AI予測と実ゲームの両方が必ず同じ座標を使う。
+  const LAUNCH_EXIT_X = 545;
+  const LAUNCH_EXIT_Y = 205;
+
+  let score = 0;
+  let ballsLeft = 15;
+  let best = Number(localStorage.getItem('smartball-best-allin') || 0);
+  let activeBalls = [];
+  let gameOver = false;
+
+  let stageIndex = 0;
+
+  function isCupStage(){
+    return stageIndex === 0 || stageIndex === 1;
+  }
+
+  function hasFivePxSlope(){
+    return stageIndex === 0;
+  }
+
+  let timerMode = false;
+  let timeLeft = 60;
+  let lastFrameTime = performance.now();
+
+  // 台そのものの物理設定。AIシミュレーションも同じ値を使う。
+  let boardTiltDown = 0.160;
+  let boardTiltSide = 0.000;
+  let wobbleStrength = 0.000;
+  let wobblePeriodMs = 6000;
+  let wobblePhase = 0;
+
+  let leverPull = 0;
+  let draggingLever = false;
+  let pointerStartY = 0;
+  let leverStart = 0;
+
+  let autoLaunch = false;
+  let nextAutoAt = 0;
+  const autoPower = 0.72;
+
+  let aiAuto = false;
+  let nextAiAt = 0;
+  let aiTargetIndex = -1;
+  let aiLastPlan = null;
+
+  let audioCtx = null;
+  let lastPegSoundAt = 0;
+  let lastBumperSoundAt = 0;
+
+  let editMode = 'off'; // off | pegs
+  let editTool = 'move'; // move | add | delete
+  let draggingBumper = null;
+  let draggingPeg = null;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+
+  const pegs = [];
+  const bumpers = [];
+  const pockets = [];
+  const rails = [];
+  const dimples = [];
+  let dimpleLinesAwarded = new Set();
+  let dimpleResetAt = 0;
+
+  let magnetZone = {x:150, y:265, r:58, strength:0.08};
+  let gate = {x:235, y:470, w:130, h:12, openUntil:0, requiredHits:6};
+  let movingBlock = {x:165, y:525, w:82, h:14, baseX:165, yBase:525, amp:75, speed:0.0016};
+  let spinner = {x:300, y:455, r:52, orbitR:32, speed:0.0025, angle:0};
+  let jackpotUntil = 0;
+  let specialMultiballUntil = 0;
+  let jackpotFlashUntil = 0;
+
+  let overlayText = '';
+  let overlayUntil = 0;
+
+  bestEl.textContent = best;
+
+  function stageKey(suffix){
+    return 'smartball-stage-' + stageIndex + '-' + suffix;
+  }
+
+  function updatePhysicsSettingsFromUi(){
+    boardTiltDown = Number(tiltDownInput.value);
+    boardTiltSide = Number(tiltSideInput.value);
+    wobbleStrength = Number(wobbleStrengthInput.value);
+    wobblePeriodMs = Number(wobblePeriodInput.value) * 1000;
+
+    tiltDownValue.textContent = boardTiltDown.toFixed(3);
+    tiltSideValue.textContent = boardTiltSide.toFixed(3);
+    wobbleStrengthValue.textContent = wobbleStrength.toFixed(3);
+    wobblePeriodValue.textContent = (wobblePeriodMs/1000).toFixed(1) + '秒';
+  }
+
+  function boardAccelerationAtPhase(phase){
+    // ゆらぎは台全体がごく緩く左右・上下に揺れるイメージ。
+    // ランダムではなく周期運動なので、同じ設定なら再現可能。
+    const wx = Math.sin(phase) * wobbleStrength;
+    const wy = Math.cos(phase * 0.73) * wobbleStrength * 0.45;
+    return {
+      ax: boardTiltSide + wx,
+      ay: boardTiltDown + wy
+    };
+  }
+
+  function showOverlay(text, ms=1200){
+    overlayText = text;
+    overlayUntil = performance.now() + ms;
+  }
+
+  function beep(freq=440,dur=.04,vol=.018){
+    try{
+      audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime+dur);
+    }catch(e){}
+  }
+
+  function pegSound(){
+    const now = performance.now();
+    if(now - lastPegSoundAt < 55) return;
+    lastPegSoundAt = now;
+    beep(210 + Math.random()*30, .022, .0065);
+  }
+
+  function bumperSound(base){
+    const now = performance.now();
+    if(now - lastBumperSoundAt < 65) return;
+    lastBumperSoundAt = now;
+    beep(300 + Math.min(base,100)*1.7, .042, .012);
+  }
+
+  function addScore(base){
+    const total = Math.round(base);
+    score += total;
+    if(score > best){
+      best = score;
+      localStorage.setItem('smartball-best-allin', best);
+    }
+    updateHud();
+    return total;
+  }
+
+  function updateHud(){
+    scoreEl.textContent = score;
+    ballsEl.textContent = ballsLeft;
+    bestEl.textContent = best;
+    timeEl.textContent = timerMode ? Math.max(0, Math.ceil(timeLeft)).toString() : '--';
+  }
+
+  function saveLayout(){
+    const data = {
+      pegs: pegs.map(p => ({x:p.x, y:p.y, r:p.r})),
+      bumpers: bumpers.map(b => ({x:b.x, y:b.y, r:b.r, score:b.score, label:b.label})),
+    };
+    localStorage.setItem(stageKey('layout'), JSON.stringify(data));
+    showOverlay('配置を保存しました');
+  }
+
+  function clearLayout(){
+    localStorage.removeItem(stageKey('layout'));
+    buildStage(stageIndex);
+    showOverlay('配置を初期化しました');
+  }
+
+  function tryLoadLayout(){
+    try{
+      const raw = localStorage.getItem(stageKey('layout'));
+      if(!raw) return false;
+      const data = JSON.parse(raw);
+      if(!data || !Array.isArray(data.pegs) || !Array.isArray(data.bumpers)) return false;
+      pegs.length = 0;
+      bumpers.length = 0;
+      data.pegs.forEach(p => {
+        if(Number.isFinite(p.x) && Number.isFinite(p.y)){
+          pegs.push({x:p.x, y:p.y, r:Math.max(4, Math.min(8, p.r || 6))});
+        }
+      });
+      data.bumpers.forEach(b => {
+        if(Number.isFinite(b.x) && Number.isFinite(b.y)){
+          bumpers.push({
+            x: Math.max(48, Math.min(505, b.x)),
+            y: Math.max(125, Math.min(610, b.y)),
+            r: Math.max(16, Math.min(32, b.r || 24)),
+            score: b.score || 20,
+            label: b.label || String(b.score || 20),
+          });
+        }
+      });
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+
+  function resetDimples(){
+    dimples.forEach(d => d.filled = false);
+    dimpleLinesAwarded = new Set();
+    dimpleResetAt = 0;
+  }
+
+  function buildDimpleBoard(){
+    dimples.length = 0;
+    const xs = [160, 250, 340, 430];
+    const ys = [270, 365, 460, 555];
+
+    for(let row=0; row<4; row++){
+      for(let col=0; col<4; col++){
+        dimples.push({
+          x: xs[col],
+          y: ys[row],
+          r: 17,
+          row,
+          col,
+          filled: false
+        });
+      }
+    }
+    dimpleLinesAwarded = new Set();
+    dimpleResetAt = 0;
+  }
+
+  function checkDimpleBonuses(){
+    if(!isCupStage()) return;
+
+    // 4 rows + 4 columns
+    for(let r=0; r<4; r++){
+      const key = 'r'+r;
+      if(!dimpleLinesAwarded.has(key) &&
+         dimples.filter(d => d.row===r).every(d => d.filled)){
+        dimpleLinesAwarded.add(key);
+        addScore(300, true);
+        ballsLeft = Math.min(50, ballsLeft + 1);
+        showOverlay('ROW COMPLETE +300 / +1 BALL', 1100);
+      }
+    }
+
+    for(let c=0; c<4; c++){
+      const key = 'c'+c;
+      if(!dimpleLinesAwarded.has(key) &&
+         dimples.filter(d => d.col===c).every(d => d.filled)){
+        dimpleLinesAwarded.add(key);
+        addScore(300, true);
+        ballsLeft = Math.min(50, ballsLeft + 1);
+        showOverlay('COLUMN COMPLETE +300 / +1 BALL', 1100);
+      }
+    }
+
+    const filled = dimples.filter(d => d.filled).length;
+    if(filled === 16 && !dimpleResetAt){
+      addScore(2000, true);
+      ballsLeft = Math.min(50, ballsLeft + 5);
+      updateHud();
+      dimpleResetAt = performance.now() + 3000;
+      showOverlay('4×4 COMPLETE! +2000 / +5 BALL', 2200);
+    }
+  }
+
+  function buildStage(idx){
+    stageIndex = Math.max(0, Math.min(1, Number(idx) || 0));
+    pegs.length = 0;
+    bumpers.length = 0;
+    pockets.length = 0;
+    rails.length = 0;
+    dimples.length = 0;
+    dimpleLinesAwarded = new Set();
+    dimpleResetAt = 0;
+
+    buildDimpleBoard();
+
+    // 各穴の下は1本釘だけ。
+    for(const d of dimples){
+      pegs.push({x:d.x, y:d.y + 30, r:6});
+    }
+
+    // 外側のアーチレールだけを物理壁として追加する。
+    buildOuterArchRails();
+
+    // 磁石・バンパー・可動役物は使わない。
+    magnetZone = {x:300, y:405, r:0, strength:0};
+    gate = {x:245, y:640, w:110, h:10, openUntil:9999999999999, requiredHits:99};
+    movingBlock = {x:-300, y:760, w:1, h:1, baseX:-300, yBase:760, amp:0, speed:0};
+    spinner = {x:-300, y:-300, r:1, orbitR:0, speed:0, angle:0};
+
+    tryLoadLayout();
+    bumpers.length = 0;
+
+    pockets.push(
+      {baseX:105, x:105, y:675, r:22, score:70, bonus:1, label:'+1', color:'blue', moveAmp:0, moveSpeed:0, phase:0},
+      {baseX:300, x:300, y:680, r:24, score:120, bonus:1, label:'+1', color:'green', moveAmp:0, moveSpeed:0, phase:1},
+      {baseX:495, x:495, y:675, r:22, score:70, bonus:1, label:'+1', color:'red', moveAmp:0, moveSpeed:0, phase:2}
+    );
+  }
+
+  function resetGame(fullRebuild=true){
+    score = 0;
+    ballsLeft = 32;
+    activeBalls = [];
+    gameOver = false;
+    leverPull = 0;
+    draggingLever = false;
+    buttonCharging = false;
+    if(launchBtn) launchBtn.textContent = '発射';
+    draggingBumper = null;
+    draggingPeg = null;
+
+    jackpotUntil = 0;
+    specialMultiballUntil = 0;
+    jackpotFlashUntil = 0;
+    overlayText = '';
+    overlayUntil = 0;
+    aiTargetIndex = -1;
+    aiLastPlan = null;
+
+    if(isCupStage()){
+      resetDimples();
+    }
+
+    timeLeft = 60;
+    lastFrameTime = performance.now();
+
+    if(fullRebuild){
+      buildStage(stageIndex);
+    }
+    updateHud();
+  }
+
+  function canLaunch(){
+    return ballsLeft > 0 && !gameOver && activeBalls.length < MAX_ACTIVE_BALLS;
+  }
+
+  function fire(power, opts={}){
+    if(!canLaunch()) return;
+
+    // 手動発射はほぼ0～100%をそのまま使う。
+    // 以前の0.38未満切り捨てをやめ、弱打ち～強打ちまで連続的に変化させる。
+    power = Math.max(.05, Math.min(1,power));
+    if(isCupStage()){
+      power = quantizeStage4Power(power);
+    }
+    ballsLeft--;
+
+    activeBalls.push({
+      x: 545,
+      y: 682,
+      vx: 0,
+      vy: -15.0 - power*8.2,
+      r: 9,
+      shotPower: power,
+      launchT: 0,
+      releasedFromLane: false,
+      enteredPlayfield: false,
+      refundedLaunchReturn: false,
+      slowFrames: 0,
+      bumperCooldowns: new Array(16).fill(0),
+      isAiShot: !!opts.ai,
+      aiTargetIndex: Number.isInteger(opts.targetIndex) ? opts.targetIndex : -1,
+    });
+
+    leverPull = 0;
+    beep(520,.045,.014);
+    updateHud();
+  }
+
+  function spawnBonusBall(x, y){
+    if(activeBalls.length >= MAX_ACTIVE_BALLS) return;
+    activeBalls.push({
+      x, y,
+      vx: (Math.random()-0.5)*1.4,
+      vy: -2.2 - Math.random()*1.8,
+      r: 9,
+      shotPower: .65,
+      launchT: 1,
+      releasedFromLane: true,
+      enteredPlayfield: true,
+      refundedLaunchReturn: false,
+      slowFrames: 0,
+      bumperCooldowns: new Array(16).fill(0),
+    });
+  }
+
+  function finishBall(ball){
+    const idx = activeBalls.indexOf(ball);
+    if(idx >= 0) activeBalls.splice(idx, 1);
+
+    if(ball && ball.isAiShot){
+      aiTargetIndex = -1;
+      nextAiAt = performance.now() + 180;
+    }
+
+    if(!timerMode && ballsLeft <= 0 && activeBalls.length === 0){
+      gameOver = true;
+      autoLaunch = false;
+      autoBtn.classList.remove('success');
+      autoBtn.textContent = 'AUTO OFF';
+      aiAuto = false;
+      aiAutoBtn.classList.remove('success');
+      aiAutoBtn.textContent = 'AI AUTO OFF';
+    }
+    if(timerMode && timeLeft <= 0 && activeBalls.length === 0){
+      gameOver = true;
+      autoLaunch = false;
+      autoBtn.classList.remove('success');
+      autoBtn.textContent = 'AUTO OFF';
+      aiAuto = false;
+      aiAutoBtn.classList.remove('success');
+      aiAutoBtn.textContent = 'AI AUTO OFF';
+    }
+  }
+
+  function collideCircle(ball,obj,restitution=.36,tangentKeep=.94){
+    const dx=ball.x-obj.x, dy=ball.y-obj.y;
+    const d=Math.hypot(dx,dy);
+    const minD=ball.r+obj.r;
+    if(d>0 && d<minD){
+      const nx=dx/d, ny=dy/d;
+      const tx=-ny, ty=nx;
+      const overlap=minD-d;
+      ball.x += nx*overlap;
+      ball.y += ny*overlap;
+      const vn = ball.vx*nx + ball.vy*ny;
+      const vt = ball.vx*tx + ball.vy*ty;
+      if(vn < 0){
+        const outN = -vn * restitution;
+        const outT = vt * tangentKeep;
+        ball.vx = outN*nx + outT*tx;
+        ball.vy = outN*ny + outT*ty;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function collideBalls(a,b,restitution=.88,tangentKeep=.985){
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const d = Math.hypot(dx,dy);
+    const minD = a.r + b.r;
+    if(d <= 0 || d >= minD) return false;
+    const nx = dx / d;
+    const ny = dy / d;
+    const tx = -ny, ty = nx;
+    const overlap = minD - d;
+    a.x -= nx * overlap * 0.5;
+    a.y -= ny * overlap * 0.5;
+    b.x += nx * overlap * 0.5;
+    b.y += ny * overlap * 0.5;
+    const vaN = a.vx*nx + a.vy*ny;
+    const vaT = a.vx*tx + a.vy*ty;
+    const vbN = b.vx*nx + b.vy*ny;
+    const vbT = b.vx*tx + b.vy*ty;
+    if(vbN - vaN < 0){
+      const avgN = (vaN + vbN) * 0.5;
+      const relN = (vbN - vaN) * 0.5;
+      const outVaN = avgN + relN * restitution;
+      const outVbN = avgN - relN * restitution;
+      const outVaT = vaT * tangentKeep;
+      const outVbT = vbT * tangentKeep;
+      a.vx = outVaN*nx + outVaT*tx;
+      a.vy = outVaN*ny + outVaT*ty;
+      b.vx = outVbN*nx + outVbT*tx;
+      b.vy = outVbN*ny + outVbT*ty;
+    }
+    return true;
+  }
+
+  function collideRail(ball, rail, restitution=0.30, tangentKeep=0.985){
+    const vx = rail.x2 - rail.x1;
+    const vy = rail.y2 - rail.y1;
+    const len2 = vx*vx + vy*vy || 1;
+
+    let t = ((ball.x - rail.x1)*vx + (ball.y - rail.y1)*vy) / len2;
+    t = Math.max(0, Math.min(1, t));
+
+    const cx = rail.x1 + vx*t;
+    const cy = rail.y1 + vy*t;
+    let dx = ball.x - cx;
+    let dy = ball.y - cy;
+    let dist = Math.hypot(dx,dy);
+    const rr = ball.r + (rail.w || 6) * 0.5;
+
+    if(dist >= rr) return false;
+
+    if(dist < 0.0001){
+      // ほぼ完全一致のときは線分法線を使う
+      const segLen = Math.hypot(vx,vy) || 1;
+      dx = -vy / segLen;
+      dy =  vx / segLen;
+      dist = 1;
+    }
+
+    const nx = dx / dist;
+    const ny = dy / dist;
+    const overlap = rr - dist;
+    ball.x += nx * overlap;
+    ball.y += ny * overlap;
+
+    const tx = vx / (Math.hypot(vx,vy) || 1);
+    const ty = vy / (Math.hypot(vx,vy) || 1);
+    const vn = ball.vx*nx + ball.vy*ny;
+    const vt = ball.vx*tx + ball.vy*ty;
+
+    if(vn < 0){
+      const outN = -vn * restitution;
+      const outT = vt * tangentKeep;
+      ball.vx = outN*nx + outT*tx;
+      ball.vy = outN*ny + outT*ty;
+    }
+    return true;
+  }
+
+  function circleRectCollision(ball, rect, restitution=0.6){
+    const closestX = Math.max(rect.x, Math.min(ball.x, rect.x + rect.w));
+    const closestY = Math.max(rect.y, Math.min(ball.y, rect.y + rect.h));
+    const dx = ball.x - closestX;
+    const dy = ball.y - closestY;
+    const dist2 = dx*dx + dy*dy;
+    if(dist2 > ball.r*ball.r) return false;
+    const dist = Math.sqrt(dist2) || 1;
+    const nx = dx / dist;
+    const ny = dy / dist;
+    const overlap = ball.r - dist;
+    ball.x += nx * overlap;
+    ball.y += ny * overlap;
+    const vn = ball.vx*nx + ball.vy*ny;
+    if(vn < 0){
+      ball.vx -= (1+restitution)*vn*nx;
+      ball.vy -= (1+restitution)*vn*ny;
+    }
+    return true;
+  }
+
+  function updateDynamicFeatures(now, dt){
+    if(isCupStage() && dimpleResetAt && now >= dimpleResetAt){
+      resetDimples();
+      showOverlay('4×4 RESET', 700);
+    }
+
+    spinner.angle += spinner.speed * dt;
+    movingBlock.x = movingBlock.baseX + Math.sin(now * movingBlock.speed) * movingBlock.amp;
+
+    pockets.forEach((p, idx) => {
+      if(p.moveAmp){
+        p.x = p.baseX + Math.sin(now * p.moveSpeed + p.phase) * p.moveAmp;
+      }else{
+        p.x = p.baseX;
+      }
+    });
+
+    if(timerMode && !gameOver){
+      timeLeft -= dt / 1000;
+      if(timeLeft <= 0){
+        timeLeft = 0;
+        if(activeBalls.length === 0){
+          gameOver = true;
+          autoLaunch = false;
+          autoBtn.classList.remove('success');
+          autoBtn.textContent = 'AUTO OFF';
+        }
+      }
+      updateHud();
+    }
+  }
+
+  function physics(now, dt){
+    // 物理時間に合わせてゆらぎ位相を進める。
+    if(wobblePeriodMs > 0){
+      wobblePhase += (dt / wobblePeriodMs) * Math.PI * 2;
+      if(wobblePhase > Math.PI * 2) wobblePhase -= Math.PI * 2;
+    }
+
+    updateDynamicFeatures(now, dt);
+
+    for(let bi=activeBalls.length-1; bi>=0; bi--){
+      const b = activeBalls[bi];
+      if(!b) continue;
+
+      const pegHitThisFrame = new Set();
+
+      for(let s=0; s<4; s++){
+
+        if(!b.releasedFromLane){
+          // 縦の発射レーンだけはまっすぐ上へ送る。
+          // アーチ手前で自由運動へ切り替え、以後は外側レールとの衝突だけで進む。
+          b.launchT = Math.min(1, b.launchT + (0.0063 + b.shotPower*0.0018));
+          const q = b.launchT;
+
+          b.x = LAUNCH_EXIT_X;
+          b.y = 682 + (LAUNCH_EXIT_Y - 682) * q;
+          b.vx = 0;
+          b.vy = -6;
+
+          if(q >= 1){
+            b.releasedFromLane = true;
+            b.enteredPlayfield = true;
+
+            if(isCupStage()){
+              const exactPower = quantizeStage4Power(b.shotPower);
+              b.vx = stage4LaunchVx(exactPower);
+              b.vy = stage4LaunchVy(exactPower);
+            }else{
+              b.vx = -(4.8 + b.shotPower*1.2);
+              b.vy = 0.65 + b.shotPower*0.25;
+            }
+            beep(430,.018,.010);
+          }
+          continue;
+        }
+
+
+        // 台全体の傾き + 周期的なゆらぎ。
+        const boardAccel = boardAccelerationAtPhase(wobblePhase);
+        b.vx += boardAccel.ax/4;
+        b.vy += boardAccel.ay/4;
+
+        // magnet zone
+        const mdx = magnetZone.x - b.x;
+        const mdy = magnetZone.y - b.y;
+        const md = Math.hypot(mdx, mdy);
+        if(md < magnetZone.r && md > 1){
+          const pull = (1 - md / magnetZone.r) * magnetZone.strength;
+          b.vx += (mdx / md) * pull;
+          b.vy += (mdy / md) * pull;
+        }
+
+        // NORMALだけ、穴の縁から外側約10pxに局所的な傾斜を付ける。
+        // VERY HARDではこの処理を完全に使わない。
+        if(hasFivePxSlope()){
+          for(const d of dimples){
+            const dx = d.x - b.x;
+            const dy = d.y - b.y;
+            const dist = Math.hypot(dx,dy);
+            const outer = d.r + 10;
+
+            if(dist > 0.5 && dist < outer){
+              const nx = dx / dist;              const ny = dy / dist;
+              const rim = Math.max(0, Math.min(1, (outer - dist) / 10));
+              const accel = 0.050 * rim;
+
+              b.vx += nx * accel;
+              b.vy += ny * accel;
+              b.vx *= 0.9992;
+              b.vy *= 0.9992;
+            }
+          }
+        }
+
+        b.vx *= 0.9990;
+        b.vy *= 0.9992;
+        b.x += b.vx/4;
+        b.y += b.vy/4;
+
+        if(b.x-b.r < 25){
+          b.x=25+b.r;
+          b.vx=Math.abs(b.vx)*.48;
+          beep(240,.015,.010);
+        }
+        if(b.x+b.r > 573){
+          b.x=573-b.r;
+          b.vx=-Math.abs(b.vx)*.48;
+          beep(240,.015,.010);
+        }
+        if(b.y-b.r < 35){
+          b.y=35+b.r;
+          b.vy=Math.abs(b.vy)*.42;
+        }
+
+        // 発射レーンの仕切り壁。
+        // 下側だけ入口を開け、盤面からレーンへ戻る玉は実際にこの開口部を通る必要がある。
+        if(b.releasedFromLane){
+          circleRectCollision(b, {x:522, y:215, w:8, h:410}, 0.42);
+        }
+
+        // Gate
+        if(!isCupStage() && performance.now() > gate.openUntil){
+          circleRectCollision(b, {x:gate.x, y:gate.y, w:gate.w, h:gate.h}, 0.55);
+        }
+
+        // Moving obstacle
+        if(!isCupStage()){
+          circleRectCollision(b, {x:movingBlock.x, y:movingBlock.yBase, w:movingBlock.w, h:movingBlock.h}, 0.72);
+        }
+
+        // Spinner orbits as 3 moving mini-bumpers
+        for(let si=0; !isCupStage() && si<3; si++){
+          const ang = spinner.angle + si*Math.PI*2/3;
+          const sx = spinner.x + Math.cos(ang)*spinner.orbitR;
+          const sy = spinner.y + Math.sin(ang)*spinner.orbitR;
+          if(collideCircle(b, {x:sx, y:sy, r:9}, .78, .97)){
+            b.vx += Math.cos(ang) * 0.4;
+            b.vy += Math.sin(ang) * 0.4;
+          }
+        }
+
+        // Ball-ball collision
+        for(let oi=0; oi<bi; oi++){
+          const other = activeBalls[oi];
+          if(!other) continue;
+          collideBalls(b, other, .90, .985);
+        }
+
+        // ガイドレール
+        for(const rail of rails){
+          collideRail(b, rail, 0.22, 0.992);
+        }
+
+        for(let i=0;i<pegs.length;i++){
+          if(pegHitThisFrame.has(i)) continue;
+
+          const pegRestitution = isCupStage() ? .38 : .22;
+          const pegTangentKeep = isCupStage() ? .965 : .94;
+
+          if(collideCircle(b, pegs[i], pegRestitution, pegTangentKeep)){
+            pegHitThisFrame.add(i);
+
+            // 4×4ステージでは人工的なランダム押しを入れず、
+            // 衝突角度と重力だけで進路を変える。
+            if(!isCupStage()){
+              b.vx += (Math.random()-.5)*.025;
+              b.vy += 0.025;
+            }
+            pegSound();
+          }
+        }
+
+        for(let i=0;i<bumpers.length;i++){
+          const bm=bumpers[i];
+          if(b.bumperCooldowns[i] > 0) b.bumperCooldowns[i]--;
+
+          if(collideCircle(b, bm, .72, .98)){
+            const dx = b.x - bm.x;
+            const dy = b.y - bm.y;
+            const d = Math.hypot(dx,dy) || 1;
+            const nx = dx/d, ny = dy/d;
+            b.vx += nx * 1.15;
+            b.vy += ny * 1.15;
+
+            if(bm.score === 40){
+              const speed = Math.hypot(b.vx,b.vy);
+              if(speed < 3.0 || Math.abs(b.vx) < 0.45){
+                const dir = (b.x < bm.x) ? -1 : (b.x > bm.x ? 1 : (Math.random()<.5?-1:1));
+                b.vx += dir * 1.0;
+                b.vy += 0.2;
+              }
+            }
+
+            if(b.bumperCooldowns[i] <= 0){
+              addScore(bm.score);
+              bumperSound(bm.score);
+              b.bumperCooldowns[i] = 8;
+            }
+          }
+        }
+
+        if(isCupStage() && b.vy > -0.6){
+          let dimpleCaptured = false;
+
+          for(const d of dimples){
+            const dx = b.x - d.x;
+            const dy = b.y - d.y;
+            const dist = Math.hypot(dx,dy);
+
+            const localSpeed = Math.hypot(b.vx,b.vy);
+
+            // 玉とほぼ同じ大きさの窪みなので、高速で縁を横切っただけでは入らない。
+            // 中心付近まで落ち込み、速度も十分落ちた時だけ着座したとみなす。
+            if(!d.filled && dist < 5.6 && localSpeed < 2.50){
+              d.filled = true;
+              addScore(100, true);
+              beep(470,.055,.012);
+              finishBall(b);
+              checkDimpleBonuses();
+              updateHud();
+              dimpleCaptured = true;
+              break;
+            }
+
+            // すでに埋まっている窪みは、玉が重ならないよう軽く押し返す
+            if(d.filled && dist < d.r + b.r - 3 && dist > 0){
+              const nx = dx/dist;
+              const ny = dy/dist;
+              const overlap = d.r + b.r - 3 - dist;
+              b.x += nx * overlap * 0.6;
+              b.y += ny * overlap * 0.6;
+              const vn = b.vx*nx + b.vy*ny;
+              if(vn < 0){
+                b.vx -= 1.25*vn*nx;
+                b.vy -= 1.25*vn*ny;
+              }
+            }
+          }
+
+          if(dimpleCaptured) break;
+        }
+
+        if(b.vy>0){
+          let captured = false;
+          for(const p of pockets){
+            const dx=b.x-p.x, dy=b.y-p.y;
+            const dist=Math.hypot(dx,dy);
+            if(dist < p.r-2){
+              let bonus = p.bonus;
+              let pocketScore = p.score;
+              let tag = p.label;
+
+              if(p.label === 'SPECIAL'){
+                if(performance.now() < jackpotUntil){
+                  pocketScore = 600;
+                  bonus = 4;
+                  tag = 'JACKPOT';
+                  jackpotFlashUntil = performance.now() + 1100;
+                  showOverlay('JACKPOT!', 1200);
+                }
+
+                // マルチボールは6秒に1回だけ、追加球も1球に抑える。
+                if(performance.now() >= specialMultiballUntil){
+                  spawnBonusBall(p.x, p.y-22);
+                  specialMultiballUntil = performance.now() + 6000;
+                }
+              }
+
+              addScore(pocketScore, true);
+
+              // 手持ち球が増えすぎないよう上限を設ける。
+              ballsLeft = Math.min(50, ballsLeft + bonus);
+              updateHud();
+              beep(bonus>=4?660:560,.09,.016);
+
+              if(ballsLeft < 0) ballsLeft = 0;
+              finishBall(b);
+              captured = true;
+              break;
+            }
+          }
+          if(captured) break;
+        }
+      }
+
+      if(!activeBalls.includes(b)) continue;
+
+      if(b.releasedFromLane){
+        const speed = Math.hypot(b.vx,b.vy);
+
+        if(isCupStage()){
+          // 4×4ステージでは人工的な押し出しをしない。
+          // 盤面全体の傾斜と窪みの斜面だけで転がす。
+          b.slowFrames = 0;
+        }else if(speed < 0.75){
+          b.slowFrames++;
+          if(b.slowFrames >= 18){
+            b.vy += 0.50;
+            b.vx += (Math.random()-.5)*0.22;
+            b.slowFrames = 0;
+          }
+        }else{
+          b.slowFrames = 0;
+        }
+      }
+
+      // 発射レーン返却:
+      // 右下の広い領域に入っただけでは返却しない。
+      // 仕切り壁の下の入口を通り、実際にレーン内部まで入った時だけ1球返す。
+      const insideReturnLane =
+        b.x > 542 &&
+        b.x < 568 &&
+        b.y > 642 &&
+        b.y < 712;
+
+      if(b.enteredPlayfield && !b.refundedLaunchReturn && insideReturnLane){
+        b.refundedLaunchReturn = true;
+        ballsLeft++;
+        updateHud();
+        beep(430,.04,.010);
+        finishBall(b);
+        continue;
+      }
+
+      if(b.y > 775){
+        finishBall(b);
+        continue;
+      }
+    }
+
+    if(timerMode && timeLeft <= 0 && activeBalls.length === 0){
+      gameOver = true;
+    }
+  }
+
+  function roundedRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.roundRect(x,y,w,h,r);
+  }
+
+  function draw(){
+    const now = performance.now();
+
+    const bg=ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0,'#38234a');
+    bg.addColorStop(.52,'#1f2938');
+    bg.addColorStop(1,'#241326');
+    ctx.fillStyle=bg;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.strokeStyle='#c88d3f';
+    ctx.lineWidth=9;
+    ctx.strokeRect(18,18,W-36,H-36);
+    ctx.strokeStyle='#6a3f24';
+    ctx.lineWidth=3;
+    ctx.strokeRect(29,29,W-58,H-58);
+
+    ctx.textAlign='center';
+    ctx.fillStyle='#ffe486';
+    ctx.font='900 27px system-ui';
+    ctx.fillText('SMART BALL 4×4',300,72);
+    ctx.fillStyle='#d9c8df';
+    ctx.font='12px system-ui';
+    ctx.fillText('16 CUPS CHALLENGE',300,95);
+
+    // launcher lane
+    ctx.fillStyle='#0f0d16';
+    ctx.fillRect(532,50,38,646);
+    ctx.strokeStyle='#9a77aa';
+    ctx.lineWidth=2;
+    ctx.strokeRect(532,50,38,646);
+    ctx.fillStyle='#4e355c';
+    ctx.fillRect(522,215,8,410);
+    ctx.fillStyle='#7f5f90';
+    ctx.fillRect(524,215,3,410);
+
+    // 右下の返却レーン入口。実際の判定位置と合わせて奥まで入った時だけ返却される。
+    ctx.strokeStyle='#cdb7d5';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(522,625);
+    ctx.lineTo(536,642);
+    ctx.stroke();
+
+    ctx.strokeStyle='#ffffff22';
+    ctx.beginPath();
+    ctx.moveTo(542,642);
+    ctx.lineTo(568,642);
+    ctx.stroke();
+
+    ctx.fillStyle='#cdb7d5aa';
+    ctx.font='8px system-ui';
+    ctx.textAlign='center';
+    ctx.fillText('RETURN',554,655);
+    ctx.fillStyle='#cdb7d555';
+    ctx.font='10px system-ui';
+    ctx.save();
+    ctx.translate(560,245);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillText('LAUNCH LANE',0,0);
+    ctx.restore();
+
+    // 発射レール: 外側のアーチ1本だけ。
+    // 玉はこの線に当たった時だけ反射し、中心線へ固定されない。
+    ctx.beginPath();
+    ctx.moveTo(565,185);
+    ctx.bezierCurveTo(565,28,44,28,44,145);
+    ctx.strokeStyle='#ffffff30';
+    ctx.lineWidth=7;
+    ctx.lineCap='round';
+    ctx.lineJoin='round';
+    ctx.stroke();
+
+    // 発射レーンは右側の縦部分だけ。
+    ctx.strokeStyle='#ffffff22';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(532,682);
+    ctx.lineTo(532,215);
+    ctx.stroke();
+
+
+    // magnet zone（4×4ステージでは補助を使わない）
+    if(!isCupStage()){
+      const mg = ctx.createRadialGradient(magnetZone.x, magnetZone.y, 4, magnetZone.x, magnetZone.y, magnetZone.r);
+      mg.addColorStop(0, 'rgba(120,220,255,0.22)');
+      mg.addColorStop(1, 'rgba(120,220,255,0.02)');
+      ctx.beginPath();
+      ctx.arc(magnetZone.x, magnetZone.y, magnetZone.r, 0, Math.PI*2);
+      ctx.fillStyle = mg;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(120,220,255,0.18)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(190,235,255,0.7)';
+      ctx.font = '11px system-ui';
+      ctx.fillText('MAGNET', magnetZone.x, magnetZone.y+4);
+    }
+
+    // guide rails
+    for(const rail of rails){
+      ctx.strokeStyle = '#d5b36a';
+      ctx.lineWidth = rail.w || 6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(rail.x1, rail.y1);
+      ctx.lineTo(rail.x2, rail.y2);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#fff0b7aa';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(rail.x1, rail.y1);
+      ctx.lineTo(rail.x2, rail.y2);
+      ctx.stroke();
+    }
+
+    // pegs
+    for(const p of pegs){
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r+3,0,Math.PI*2);
+      ctx.fillStyle='#5a3b25';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='#efd491';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x-2,p.y-2,2,0,Math.PI*2);
+      ctx.fillStyle='#fff8d3';
+      ctx.fill();
+
+      if(editMode==='pegs'){
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.r+7,0,Math.PI*2);
+        ctx.strokeStyle = draggingPeg === p ? '#ffffff' : '#87ccff';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5,4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // 4×4 dimple board
+    if(isCupStage()){
+      for(const d of dimples){
+        if(hasFivePxSlope()){
+          ctx.beginPath();
+          ctx.arc(d.x,d.y,d.r+10,0,Math.PI*2);
+          ctx.strokeStyle='rgba(225,190,120,0.24)';
+          ctx.lineWidth=2;
+          ctx.stroke();
+        }
+
+        const dg = ctx.createRadialGradient(d.x-5,d.y-6,3,d.x,d.y,d.r);
+        if(d.filled){
+          dg.addColorStop(0,'#f4f7fa');
+          dg.addColorStop(.38,'#9aa6af');
+          dg.addColorStop(1,'#303841');
+        }else{
+          dg.addColorStop(0,'#222a31');
+          dg.addColorStop(.58,'#10151a');
+          dg.addColorStop(1,'#050608');
+        }
+
+        ctx.beginPath();
+        ctx.arc(d.x,d.y,d.r+4,0,Math.PI*2);
+        ctx.fillStyle = d.filled ? '#a47c32' : '#5c462a';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
+        ctx.fillStyle = dg;
+        ctx.fill();
+        ctx.strokeStyle = d.filled ? '#fff0b2' : '#ad8b52';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        if(d.filled){
+          // captured ball highlight
+          ctx.beginPath();
+          ctx.arc(d.x-5,d.y-6,4,0,Math.PI*2);
+          ctx.fillStyle='#ffffffcc';
+          ctx.fill();
+        }
+      }
+
+      const filledCount = dimples.filter(d => d.filled).length;
+      ctx.textAlign='center';
+      ctx.fillStyle='#ffe79a';
+      ctx.font='800 17px system-ui';
+      ctx.fillText('4×4 CUPS  ' + filledCount + '/16', 300, 238);
+
+      if(aiAuto && aiTargetIndex >= 0 && dimples[aiTargetIndex] && !dimples[aiTargetIndex].filled){
+        const td = dimples[aiTargetIndex];
+        const pulse = 5 + Math.sin(now*.01)*2;
+        ctx.beginPath();
+        ctx.arc(td.x,td.y,td.r+10+pulse,0,Math.PI*2);
+        ctx.strokeStyle='#7df5ff';
+        ctx.lineWidth=3;
+        ctx.setLineDash([8,6]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle='#bffbff';
+        ctx.font='900 11px system-ui';
+        ctx.fillText('AI TARGET',td.x,td.y-27);
+      }
+    }
+
+    // gate
+    const gateOpen = now < gate.openUntil;
+    if(!isCupStage()){
+    ctx.fillStyle = gateOpen ? '#53b46c' : '#7a3551';
+    ctx.fillRect(gate.x, gate.y, gate.w, gate.h);
+    ctx.strokeStyle = gateOpen ? '#c8ffd6' : '#e0a2b7';
+    ctx.strokeRect(gate.x, gate.y, gate.w, gate.h);
+    ctx.fillStyle = '#f5f0e6';
+    ctx.font = '11px system-ui';
+    ctx.fillText(gateOpen ? 'GATE OPEN' : 'GATE', gate.x + gate.w/2, gate.y - 8);
+
+    // moving block
+    ctx.fillStyle = '#8c6ca0';
+    ctx.fillRect(movingBlock.x, movingBlock.yBase, movingBlock.w, movingBlock.h);
+    ctx.strokeStyle = '#dbc7ea';
+    ctx.strokeRect(movingBlock.x, movingBlock.yBase, movingBlock.w, movingBlock.h);
+
+    // spinner
+    ctx.beginPath();
+    ctx.arc(spinner.x, spinner.y, 9, 0, Math.PI*2);
+    ctx.fillStyle = '#a48bd1';
+    ctx.fill();
+    for(let si=0; si<3; si++){
+      const ang = spinner.angle + si*Math.PI*2/3;
+      const sx = spinner.x + Math.cos(ang)*spinner.orbitR;
+      const sy = spinner.y + Math.sin(ang)*spinner.orbitR;
+      ctx.beginPath();
+      ctx.moveTo(spinner.x, spinner.y);
+      ctx.lineTo(sx, sy);
+      ctx.strokeStyle = '#8f79ba';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(sx, sy, 9, 0, Math.PI*2);
+      ctx.fillStyle = '#d0b66c';
+      ctx.fill();
+      ctx.strokeStyle = '#ffebad';
+      ctx.stroke();
+    }
+
+    }
+
+    // bumpers
+    for(const bm of bumpers){
+      const g=ctx.createRadialGradient(bm.x-7,bm.y-8,4,bm.x,bm.y,bm.r);
+      g.addColorStop(0,'#fff3ac');
+      g.addColorStop(.38,'#efc54b');
+      g.addColorStop(1,'#a96820');
+      ctx.beginPath();
+      ctx.arc(bm.x,bm.y,bm.r,0,Math.PI*2);
+      ctx.fillStyle=g;
+      ctx.fill();
+      ctx.strokeStyle='#ffe99d';
+      ctx.lineWidth=2;
+      ctx.stroke();
+      ctx.fillStyle='#38230e';
+      ctx.font='800 16px system-ui';
+      ctx.fillText(bm.label,bm.x,bm.y+5);
+
+      if(editMode==='bumpers'){
+        ctx.beginPath();
+        ctx.arc(bm.x,bm.y,bm.r+9,0,Math.PI*2);
+        ctx.strokeStyle = draggingBumper === bm ? '#ffffff' : '#8fd8ff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6,5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // pockets
+    for(const p of pockets){
+      const isJackpot = (p.label === 'SPECIAL' && now < jackpotUntil);
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r+5,0,Math.PI*2);
+      let outer = '#315e7d';
+      if(p.color==='green') outer = '#2f6d55';
+      if(p.color==='red') outer = '#763235';
+      if(p.color==='special') outer = '#8f293d';
+      if(isJackpot) outer = '#8b5f11';
+      ctx.fillStyle = outer;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='#09070d';
+      ctx.fill();
+      ctx.strokeStyle = isJackpot ? '#fff26f' : '#cdd7dd';
+      ctx.lineWidth = isJackpot ? 4 : 2;
+      ctx.stroke();
+
+      ctx.fillStyle = isJackpot ? '#fff6a2' : '#f5f0e6';
+      ctx.font = isJackpot ? '800 10px system-ui' : (p.label==='SPECIAL' ? '800 11px system-ui' : '800 14px system-ui');
+      ctx.fillText(isJackpot ? 'JACKPOT' : p.label, p.x, p.y+4);
+
+      ctx.font='11px system-ui';
+      ctx.fillStyle='#d8cadb';
+      const scoreText = isJackpot ? '800点' : (p.score+'点');
+      ctx.fillText(scoreText, p.x, p.y+p.r+20);
+    }
+
+    // bottom out
+    ctx.fillStyle='#0c0810';
+    ctx.fillRect(34,720,472,38);
+    ctx.strokeStyle='#5f445f';
+    ctx.strokeRect(34,720,472,38);
+    ctx.fillStyle='#8c748f';
+    ctx.font='12px system-ui';
+    ctx.fillText('OUT',270,744);
+
+    // lever
+    const leverTop=560, leverBottom=720;
+    ctx.fillStyle='#ffffff10';
+    roundedRect(538,545,24,190,12);
+    ctx.fill();
+    ctx.strokeStyle='#9774a4';
+    ctx.stroke();
+
+    const knobY = leverTop + leverPull*(leverBottom-leverTop);
+    ctx.strokeStyle='#d2b05a';
+    ctx.lineWidth=5;
+    ctx.beginPath();
+    ctx.moveTo(550,550);
+    ctx.lineTo(550,knobY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(550,knobY,15,0,Math.PI*2);
+    ctx.fillStyle=draggingLever?'#ffe473':'#efbe42';
+    ctx.fill();
+    ctx.strokeStyle='#6e4b12';
+    ctx.lineWidth=3;
+    ctx.stroke();
+
+    // power meter
+    ctx.fillStyle='#ffffff15';
+    roundedRect(475,580,24,135,9);
+    ctx.fill();
+    const meterH=125*leverPull;
+    if(meterH>0){
+      ctx.fillStyle='#f0c145';
+      roundedRect(480,705-meterH,14,meterH,6);
+      ctx.fill();
+    }
+    ctx.fillStyle='#d7c8dc';
+    ctx.font='10px system-ui';
+    ctx.save();
+    ctx.translate(487,565);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillText('POWER',0,0);
+    ctx.restore();
+
+    ctx.textAlign='center';
+    ctx.fillStyle='#f5df9b';
+    ctx.font='700 10px system-ui';
+    ctx.fillText((quantizeStage4Power(Math.max(.05,leverPull))*100).toFixed(2) + '%', 487, 730);
+
+    // balls
+    for(const b of activeBalls){
+      const rg=ctx.createRadialGradient(b.x-3,b.y-4,2,b.x,b.y,b.r);
+      rg.addColorStop(0,'#fff');
+      rg.addColorStop(.35,'#dbe5ef');
+      rg.addColorStop(1,'#6c7780');
+      ctx.beginPath();
+      ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+      ctx.fillStyle=rg;
+      ctx.fill();
+      ctx.strokeStyle='#eef7ff';
+      ctx.lineWidth=1.3;
+      ctx.stroke();
+    }
+
+    if(canLaunch() && editMode==='off'){
+      ctx.beginPath();
+      ctx.arc(551,690,9,0,Math.PI*2);
+      ctx.fillStyle='#dce4ea';
+      ctx.fill();
+    }
+
+    // status labels
+    ctx.textAlign='left';
+    ctx.font='700 14px system-ui';
+if(editMode !== 'off'){
+      ctx.fillStyle = '#bfe7ff';
+      ctx.fillText('釘編集 / ' + (editTool==='move'?'移動':editTool==='add'?'追加':'削除'), 42, 152);
+    }else{
+      ctx.fillStyle = '#d8cce0';
+      const stageName = hasFivePxSlope()
+        ? 'NORMAL / 10px SLOPE'
+        : 'VERY HARD / FLAT CUPS';
+      ctx.fillText(stageName + (timerMode ? ' / TIME ATTACK' : ''), 42, 152);
+      if(aiAuto){
+        ctx.fillStyle='#8ff8ff';
+        ctx.font='700 12px system-ui';
+        const aiInfo = aiLastPlan && stageIndex===3
+          ? ('AI AIM  ' +
+             (Number.isInteger(aiLastPlan.targetIndex)
+               ? ('R' + (Math.floor(aiLastPlan.targetIndex/4)+1) +
+                  ' C' + (aiLastPlan.targetIndex%4+1) + '  ')
+               : '') +
+             'POWER ' + (aiLastPlan.power*100).toFixed(2) + '%' +
+             (aiLastPlan.predictedHit
+               ? (aiLastPlan.lateStageSearch ? '  終盤精密HIT確認済' : '  0.01% HIT確認済')
+               : '  最接近'))
+          : 'AI AUTO  0.25%探索→0.01%精密化';
+        ctx.fillText(aiInfo, 42, 191);
+      }
+    }
+
+    if(now < overlayUntil && overlayText){
+      ctx.textAlign='center';
+      roundedRect(148, 248, 304, 52, 16);
+      ctx.fillStyle = '#0008';
+      ctx.fill();
+      ctx.fillStyle = '#fff3b7';
+      ctx.font='800 20px system-ui';
+      ctx.fillText(overlayText, 300, 281);
+    }
+
+    if(canLaunch() &&
+       activeBalls.length===0 &&
+       !autoLaunch &&
+       !aiAuto &&
+       !buttonCharging &&
+       !draggingLever &&
+       leverPull===0 &&
+       editMode==='off'){
+      ctx.fillStyle='#0007';
+      roundedRect(118,112,355,40,14);
+      ctx.fill();
+      ctx.fillStyle='#fff1bf';
+      ctx.textAlign='center';
+      ctx.font='700 14px system-ui';
+      ctx.fillText('右下のレバーを引いて発射！',296,138);
+    }
+
+    if(gameOver){
+      ctx.fillStyle='#000a';
+      ctx.fillRect(0,0,W,H);
+      roundedRect(85,280,430,210,24);
+      ctx.fillStyle='#2b2033';
+      ctx.fill();
+      ctx.strokeStyle='#e3b94f';
+      ctx.lineWidth=3;
+      ctx.stroke();
+
+      ctx.textAlign='center';
+      ctx.fillStyle='#ffe16f';
+      ctx.font='900 37px system-ui';
+      ctx.fillText('GAME OVER',300,340);
+      ctx.fillStyle='#fff';
+      ctx.font='800 25px system-ui';
+      ctx.fillText('SCORE  '+score,300,391);
+      ctx.fillStyle='#d8cce0';
+      ctx.font='16px system-ui';
+      ctx.fillText(timerMode ? '60秒の結果です' : '入賞して玉を増やそう',300,430);
+      ctx.font='14px system-ui';
+      ctx.fillText('「やり直す」で再挑戦',300,458);
+    }
+  }
+
+  function aiHolePriority(index){
+    const d=dimples[index];
+    if(!d || d.filled) return -Infinity;
+    const rowFilled=dimples.filter(x=>x.row===d.row && x.filled).length;
+    const colFilled=dimples.filter(x=>x.col===d.col && x.filled).length;
+    let priority=(rowFilled+colFilled)*100;
+    if(rowFilled===3) priority+=1600;
+    if(colFilled===3) priority+=1600;
+    if(rowFilled===3 && colFilled===3) priority+=900;
+    priority+=(3-d.row)*8;
+    return priority;
+  }
+
+  function simulateAiVector(vx0,vy0){
+    const sim={x:LAUNCH_EXIT_X,y:LAUNCH_EXIT_Y,vx:vx0,vy:vy0,r:9};
+    const minDist=new Array(dimples.length).fill(Infinity);
+    const pegHitThisFrame=new Set();
+
+    for(let frame=0;frame<360;frame++){
+      pegHitThisFrame.clear();
+      for(let s=0;s<4;s++){
+        // AI側も現在の台設定と同じ傾き・ゆらぎを使う。
+        const simPhase = wobblePhase + ((frame*4+s) / 240) * (Math.PI*2) * (1000 / Math.max(1,wobblePeriodMs));
+        const simBoard = boardAccelerationAtPhase(simPhase);
+        sim.vx += simBoard.ax/4;
+        sim.vy += simBoard.ay/4;
+
+        // NORMALでは実ゲームと同じ5px傾斜をAI側にも反映する。
+        if(hasFivePxSlope()){
+          for(const d of dimples){
+            const dx=d.x-sim.x, dy=d.y-sim.y;
+            const dist=Math.hypot(dx,dy);
+            const outer=d.r+10;
+
+            if(dist>0.5 && dist<outer){
+              const nx=dx/dist, ny=dy/dist;
+              const rim=Math.max(0,Math.min(1,(outer-dist)/10));
+              const accel=0.050*rim;
+              sim.vx+=nx*accel;
+              sim.vy+=ny*accel;
+              sim.vx*=0.9992;
+              sim.vy*=0.9992;
+            }
+          }
+        }
+
+        sim.vx*=0.9990;
+        sim.vy*=0.9992;
+        sim.x+=sim.vx/4;
+        sim.y+=sim.vy/4;
+
+        if(sim.x-sim.r<25){sim.x=25+sim.r;sim.vx=Math.abs(sim.vx)*.48;}
+        if(sim.x+sim.r>573){sim.x=573-sim.r;sim.vx=-Math.abs(sim.vx)*.48;}
+        if(sim.y-sim.r<35){sim.y=35+sim.r;sim.vy=Math.abs(sim.vy)*.42;}
+
+        // 実ゲームと同じ発射レーン仕切り壁。
+        circleRectCollision(sim, {x:522, y:215, w:8, h:410}, .42);
+
+        for(const rail of rails){
+          collideRail(sim, rail, .22, .992);
+        }
+
+        for(let i=0;i<pegs.length;i++){
+          if(pegHitThisFrame.has(i)) continue;
+          if(collideCircle(sim,pegs[i],.38,.965)) pegHitThisFrame.add(i);
+        }
+
+        const speed=Math.hypot(sim.vx,sim.vy);
+        for(let i=0;i<dimples.length;i++){
+          const d=dimples[i];
+          const dx=sim.x-d.x,dy=sim.y-d.y;
+          const dist=Math.hypot(dx,dy);
+          if(!d.filled && dist<minDist[i]) minDist[i]=dist;
+
+          if(!d.filled && sim.vy>-0.6 && dist<5.6 && speed<2.50){
+            return {hitIndex:i,hitSpeed:speed,minDist};
+          }
+
+          if(d.filled && dist<d.r+sim.r-3 && dist>0){
+            const nx=dx/dist,ny=dy/dist;
+            const overlap=d.r+sim.r-3-dist;
+            sim.x+=nx*overlap*.6;
+            sim.y+=ny*overlap*.6;
+            const vn=sim.vx*nx+sim.vy*ny;
+            if(vn<0){
+              sim.vx-=1.25*vn*nx;
+              sim.vy-=1.25*vn*ny;
+            }
+          }
+        }
+
+        // 実ゲームでは下部ポケットやRETURNへ入れば、その時点でこの球は終了する。
+        if(sim.vy > 0){
+          let ended = false;
+          for(const p of pockets){
+            if(Math.hypot(sim.x-p.x, sim.y-p.y) < p.r-2){
+              ended = true;
+              break;
+            }
+          }
+          if(ended) return {hitIndex:-1,hitSpeed:Infinity,minDist};
+        }
+
+        if(sim.x>542 && sim.x<568 && sim.y>642 && sim.y<712){
+          return {hitIndex:-1,hitSpeed:Infinity,minDist};
+        }
+      }
+      if(sim.y>775) break;
+    }
+    return {hitIndex:-1,hitSpeed:Infinity,minDist};
+  }
+
+  function simulateAiPower(power){
+    const p = quantizeStage4Power(power);
+    return simulateAiVector(stage4LaunchVx(p), stage4LaunchVy(p));
+  }
+
+  function chooseStablePower(candidates){
+    if(!candidates.length) return null;
+
+    candidates.sort((a,b)=>a.step-b.step);
+
+    // 連続して命中する0.01%帯をグループ化し、一番幅のある帯の中央を使う。
+    const groups=[];
+    let current=[candidates[0]];
+
+    for(let i=1;i<candidates.length;i++){
+      if(candidates[i].step === candidates[i-1].step + 1){
+        current.push(candidates[i]);
+      }else{
+        groups.push(current);
+        current=[candidates[i]];
+      }
+    }
+    groups.push(current);
+
+    groups.sort((a,b)=>{
+      if(b.length!==a.length) return b.length-a.length;
+      const sa=Math.min(...a.map(x=>x.hitSpeed));
+      const sb=Math.min(...b.map(x=>x.hitSpeed));
+      return sa-sb;
+    });
+
+    const best=groups[0];
+    return best[Math.floor((best.length-1)/2)];
+  }
+
+  function addNearestCandidate(list, candidate, limit=6){
+    list.push(candidate);
+    list.sort((a,b)=>a.dist-b.dist);
+    if(list.length>limit) list.length=limit;
+  }
+
+  function refineTargetAt001(targetIndex, seeds, halfWidthSteps=30){
+    const seen=new Set();
+    const hits=[];
+
+    for(const seed of seeds){
+      const baseStep=seed.step;
+
+      for(let step=Math.max(500,baseStep-halfWidthSteps);
+          step<=Math.min(10000,baseStep+halfWidthSteps);
+          step++){
+        if(seen.has(step)) continue;
+        seen.add(step);
+
+        const power=step/10000;
+        const r=simulateAiPower(power);
+
+        if(r.hitIndex===targetIndex){
+          hits.push({
+            step,
+            power,
+            hitSpeed:r.hitSpeed
+          });
+        }
+      }
+    }
+    return hits;
+  }
+
+  function planAiShot(){
+    if(!isCupStage()){
+      return {power:.74,targetIndex:-1,predictedHit:false,exactPowerOnly:true};
+    }
+
+    const unfilled=dimples.map((d,i)=>d.filled?-1:i).filter(i=>i>=0);
+    if(!unfilled.length) return null;
+
+    const orderedTargets=[...unfilled].sort((a,b)=>{
+      const pa=aiHolePriority(a);
+      const pb=aiHolePriority(b);
+      if(pb!==pa) return pb-pa;
+      return a-b;
+    });
+
+    // 残り3穴以下は命中帯が非常に細くなることがある。
+    // 例: 71.14%だけ入るような孤立した解。
+    // そこで0.05%刻みで全域を広く見直し、近い候補の周囲を0.01%刻みで詰める。
+    if(unfilled.length <= 3){
+      const lateNearest=Array.from({length:dimples.length},()=>[]);
+      const lateExact=Array.from({length:dimples.length},()=>[]);
+
+      for(let step=500; step<=10000; step+=5){
+        const power=step/10000;
+        const r=simulateAiPower(power);
+
+        if(r.hitIndex>=0 && !dimples[r.hitIndex].filled){
+          lateExact[r.hitIndex].push({
+            step,
+            power,
+            hitSpeed:r.hitSpeed
+          });
+        }
+
+        for(const targetIndex of unfilled){
+          addNearestCandidate(lateNearest[targetIndex],{
+            step,
+            dist:r.minDist[targetIndex]
+          },50);
+        }
+      }
+
+      for(const targetIndex of orderedTargets){
+        const seeds=[];
+
+        for(const h of lateExact[targetIndex]){
+          seeds.push({step:h.step,dist:0});
+        }
+        for(const n of lateNearest[targetIndex]){
+          seeds.push(n);
+        }
+
+        const seen=new Set();
+        const fineHits=[];
+
+        // 各0.05%候補の前後0.12%を0.01%刻みで確認する。
+        for(const seed of seeds){
+          for(let step=Math.max(500,seed.step-12);
+              step<=Math.min(10000,seed.step+12);
+              step++){
+            if(seen.has(step)) continue;
+            seen.add(step);
+
+            const power=step/10000;
+            const r=simulateAiPower(power);
+
+            if(r.hitIndex===targetIndex){
+              fineHits.push({
+                step,
+                power,
+                hitSpeed:r.hitSpeed
+              });
+            }
+          }
+        }
+
+        if(fineHits.length){
+          const pick=chooseStablePower(fineHits);
+          const verified=simulateAiPower(pick.power);
+
+          if(verified.hitIndex===targetIndex){
+            return {
+              power:pick.power,
+              targetIndex,
+              predictedHit:true,
+              exactPowerOnly:true,
+              adaptiveSearch:true,
+              lateStageSearch:true,
+              solutionCount:fineHits.length
+            };
+          }        }
+      }
+    }
+
+    const coarseHits=Array.from({length:dimples.length},()=>[]);
+    const nearest=Array.from({length:dimples.length},()=>[]);
+
+    // まず0.25%刻みで全域を軽く探索する。
+    // 9,501通りの総当たりではなく381通りだけなので画面を長時間止めない。
+    for(let step=500;step<=10000;step+=25){
+      const power=step/10000;
+      const r=simulateAiPower(power);
+
+      if(r.hitIndex>=0 && !dimples[r.hitIndex].filled){
+        coarseHits[r.hitIndex].push({
+          step,
+          power,
+          hitSpeed:r.hitSpeed
+        });
+      }
+
+      for(const targetIndex of unfilled){
+        addNearestCandidate(nearest[targetIndex],{
+          step,
+          dist:r.minDist[targetIndex]
+        },6);
+      }
+    }
+
+    // 優先度の高い穴から、候補周辺だけ0.01%刻みに掘り下げる。
+    for(const targetIndex of orderedTargets){
+      const seeds=[];
+
+      if(coarseHits[targetIndex].length){
+        for(const h of coarseHits[targetIndex]){
+          seeds.push({step:h.step,dist:0});
+        }
+      }
+
+      for(const n of nearest[targetIndex]){
+        seeds.push(n);
+      }
+
+      // まず±0.30%を0.01%刻みで探索。
+      let fineHits=refineTargetAt001(targetIndex,seeds,30);
+
+      // 細い命中帯を取りこぼした場合だけ±0.60%へ拡大。
+      if(!fineHits.length){
+        fineHits=refineTargetAt001(targetIndex,nearest[targetIndex],60);
+      }
+
+      if(fineHits.length){
+        const pick=chooseStablePower(fineHits);
+        const verified=simulateAiPower(pick.power);
+
+        if(verified.hitIndex===targetIndex){
+          return {
+            power:pick.power,
+            targetIndex,
+            predictedHit:true,
+            exactPowerOnly:true,
+            adaptiveSearch:true,
+            solutionCount:fineHits.length
+          };
+        }
+      }
+    }
+
+    // 命中解を見つけられなかった時だけ、粗探索で最も近かった一手を使う。
+    let best=null;
+
+    for(const targetIndex of orderedTargets){
+      const candidate=nearest[targetIndex][0];
+      if(!candidate) continue;
+
+      const priority=aiHolePriority(targetIndex);
+      const cost=candidate.dist-priority*.002;
+
+      if(!best || cost<best.cost){
+        best={
+          power:candidate.step/10000,
+          targetIndex,
+          predictedHit:false,
+          exactPowerOnly:true,
+          adaptiveSearch:true,
+          minDist:candidate.dist,
+          cost
+        };
+      }
+    }
+
+    return best;
+  }
+
+  function canvasPoint(e){
+    const r=canvas.getBoundingClientRect();
+    return {
+      x:(e.clientX-r.left)/r.width*W,
+      y:(e.clientY-r.top)/r.height*H
+    };
+  }
+
+  function findNearest(arr, x, y, radius=22){
+    for(let i=arr.length-1;i>=0;i--){
+      const o = arr[i];
+      const rr = (o.r || 6) + radius;
+      if(Math.hypot(x-o.x, y-o.y) <= rr){
+        return o;
+      }
+    }
+    return null;
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    const p = canvasPoint(e);
+
+    if(editMode !== 'off'){
+      const arr = pegs;
+
+      if(editTool === 'delete'){
+        const target = findNearest(arr, p.x, p.y, 8);
+        if(target){
+          const idx = arr.indexOf(target);
+          if(idx >= 0) arr.splice(idx, 1);
+        }
+        return;
+      }
+
+      if(editTool === 'add'){
+        pegs.push({x:Math.max(42, Math.min(505,p.x)), y:Math.max(125, Math.min(690,p.y)), r:6});
+        return;
+      }
+
+      if(editTool === 'move'){
+        const pg = findNearest(pegs, p.x, p.y, 10);
+        if(pg){
+          draggingPeg = pg;
+          dragOffsetX = p.x - pg.x;
+          dragOffsetY = p.y - pg.y;
+          try{canvas.setPointerCapture(e.pointerId)}catch(_){}
+        }
+      }
+      return;
+    }
+
+    if(!canLaunch()) return;
+
+    if(p.x>500 && p.y>520){
+      draggingLever=true;
+      pointerStartY=p.y;
+      leverStart=leverPull;
+      try{canvas.setPointerCapture(e.pointerId)}catch(_){}
+    }
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    const p = canvasPoint(e);
+
+    if(draggingBumper){
+      draggingBumper.x = Math.max(48, Math.min(505, p.x - dragOffsetX));
+      draggingBumper.y = Math.max(125, Math.min(610, p.y - dragOffsetY));
+      return;
+    }
+    if(draggingPeg){
+      draggingPeg.x = Math.max(42, Math.min(505, p.x - dragOffsetX));
+      draggingPeg.y = Math.max(125, Math.min(690, p.y - dragOffsetY));
+      return;
+    }
+    if(!draggingLever) return;
+
+    const delta=(p.y-pointerStartY)/165;
+    leverPull=Math.max(0,Math.min(1,leverStart+delta));
+  });
+
+  function releasePointer(e){
+    if(draggingBumper){
+      draggingBumper = null;
+      try{canvas.releasePointerCapture(e.pointerId)}catch(_){}
+      return;
+    }
+    if(draggingPeg){
+      draggingPeg = null;
+      try{canvas.releasePointerCapture(e.pointerId)}catch(_){}
+      return;
+    }
+    if(!draggingLever) return;
+
+    draggingLever=false;
+    const power=leverPull;
+    if(power>0.08) fire(power);
+    else leverPull=0;
+    try{canvas.releasePointerCapture(e.pointerId)}catch(_){}
+  }
+
+  canvas.addEventListener('pointerup', releasePointer);
+  canvas.addEventListener('pointercancel', releasePointer);
+
+  let buttonCharging = false;
+  let buttonChargeStart = 0;
+  let suppressLaunchClick = false;
+
+  function updateButtonCharge(now){
+    if(!buttonCharging) return;
+
+    // 約2.4秒で0→100%。細かい強度を指で選びやすくする。
+    const elapsed = Math.max(0, now - buttonChargeStart);
+    leverPull = Math.min(1, elapsed / 2400);
+  }
+
+  function startButtonCharge(e){
+    if(!canLaunch() || editMode !== 'off') return;
+    buttonCharging = true;
+    buttonChargeStart = performance.now();
+    leverPull = .05;
+    launchBtn.textContent = '離して発射';
+    suppressLaunchClick = true;
+    if(e && e.pointerId !== undefined){
+      try{launchBtn.setPointerCapture(e.pointerId)}catch(_){}
+    }
+  }
+
+  function releaseButtonCharge(e){
+    if(!buttonCharging) return;
+
+    const now = performance.now();
+    const heldMs = Math.max(0, now - buttonChargeStart);
+    updateButtonCharge(now);
+    buttonCharging = false;
+
+    // 普通の短いタップを5%の超弱打ちにしない。
+    // 約180ms未満なら、右レールから安定して盤面へ入る標準ショットを使う。
+    // 長押し時は0～100%の連続値をそのまま使う。
+    const power = heldMs < 180 ? 0.124 : Math.max(.05, leverPull);
+
+    launchBtn.textContent = '発射';
+    fire(power);
+
+    if(e && e.pointerId !== undefined){
+      try{launchBtn.releasePointerCapture(e.pointerId)}catch(_){}
+    }
+
+    // pointerup後に発生するclickで二重発射しないため。
+    setTimeout(()=>{ suppressLaunchClick = false; }, 0);
+  }
+
+  launchBtn.addEventListener('pointerdown', startButtonCharge);
+  launchBtn.addEventListener('pointerup', releaseButtonCharge);
+  launchBtn.addEventListener('pointercancel', releaseButtonCharge);
+  launchBtn.addEventListener('click', e=>{
+    if(suppressLaunchClick){
+      e.preventDefault();
+      return;
+    }
+
+    // キーボード等でclickだけ発生した場合も標準ショット。
+    if(canLaunch()) fire(.124);
+  });
+
+  autoBtn.addEventListener('click', ()=>{
+    autoLaunch = !autoLaunch;
+
+    if(autoLaunch && aiAuto){
+      aiAuto = false;
+      aiTargetIndex = -1;
+      aiAutoBtn.classList.remove('success');
+      aiAutoBtn.textContent = 'AI AUTO OFF';
+    }
+
+    autoBtn.classList.toggle('success', autoLaunch);
+    autoBtn.textContent = autoLaunch ? 'AUTO ON' : 'AUTO OFF';
+
+    if(autoLaunch){
+      nextAutoAt = performance.now() + 220;
+    }
+  });
+
+  precisionFireBtn.addEventListener('click', ()=>{
+    if(!canLaunch() || editMode!=='off') return;
+
+    let pct = Number(precisionPowerInput.value);
+    if(!Number.isFinite(pct)) pct = 50;
+    pct = Math.max(5, Math.min(100, pct));
+    pct = Math.round(pct*100)/100;
+    precisionPowerInput.value = pct.toFixed(2);
+
+    fire(pct/100);
+  });
+
+  precisionPowerInput.addEventListener('change', ()=>{
+    let pct = Number(precisionPowerInput.value);
+    if(!Number.isFinite(pct)) pct = 50;
+    pct = Math.max(5, Math.min(100, pct));
+    pct = Math.round(pct*100)/100;
+    precisionPowerInput.value = pct.toFixed(2);
+  });
+
+  for(const input of [tiltDownInput, tiltSideInput, wobbleStrengthInput, wobblePeriodInput]){
+    input.addEventListener('input', updatePhysicsSettingsFromUi);
+    input.addEventListener('change', updatePhysicsSettingsFromUi);
+  }
+
+  aiAutoBtn.addEventListener('click', ()=>{
+    aiAuto = !aiAuto;
+    aiTargetIndex = -1;
+    aiLastPlan = null;
+
+    if(aiAuto){
+      autoLaunch = false;
+      autoBtn.classList.remove('success');
+      autoBtn.textContent = 'AUTO OFF';
+      nextAiAt = performance.now() + 120;
+      showOverlay(stageIndex===3 ? 'AI AUTO: TARGET ANALYSIS' : 'AI AUTO ON', 1000);
+    }
+
+    aiAutoBtn.classList.toggle('success', aiAuto);
+    aiAutoBtn.textContent = aiAuto ? 'AI AUTO ON' : 'AI AUTO OFF';
+  });
+
+  editModeBtn.addEventListener('click', ()=>{
+    editMode = editMode === 'off' ? 'pegs' : 'off';
+
+    editModeBtn.classList.toggle('on', editMode !== 'off');
+    editModeBtn.textContent = editMode === 'off' ? '釘編集 OFF' : '釘編集 ON';
+
+    if(editMode !== 'off' && autoLaunch){
+      autoLaunch = false;
+      autoBtn.classList.remove('success');
+      autoBtn.textContent = 'AUTO OFF';
+    }
+    if(editMode !== 'off' && aiAuto){
+      aiAuto = false;
+      aiTargetIndex = -1;
+      aiLastPlan = null;
+      aiAutoBtn.classList.remove('success');
+      aiAutoBtn.textContent = 'AI AUTO OFF';
+    }
+  });
+
+  editToolBtn.addEventListener('click', ()=>{
+    if(editTool === 'move') editTool = 'add';
+    else if(editTool === 'add') editTool = 'delete';
+    else editTool = 'move';
+
+    editToolBtn.textContent = (editTool === 'move' ? '移動' : (editTool === 'add' ? '追加' : '削除'));
+  });
+
+  timerModeBtn.addEventListener('click', ()=>{
+    timerMode = !timerMode;
+    timerModeBtn.textContent = timerMode ? '制限時間60秒' : '通常モード';
+    resetGame(false);
+    updateHud();
+  });
+
+  stageSelect.addEventListener('change', ()=>{
+    buildStage(Number(stageSelect.value));
+    aiTargetIndex = -1;
+    aiLastPlan = null;
+    resetGame(false);
+    if(aiAuto) nextAiAt = performance.now() + 200;
+  });
+
+  saveLayoutBtn.addEventListener('click', saveLayout);
+  clearLayoutBtn.addEventListener('click', clearLayout);
+
+  restartBtn.addEventListener('click', ()=>{
+    resetGame(false);
+  });
+
+  window.addEventListener('keydown', e=>{
+    if(e.code==='Space'){
+      e.preventDefault();
+      if(editMode==='off' && canLaunch()){
+        leverPull=Math.min(1,leverPull+.18);
+      }
+    }
+    if(e.code==='Enter' && editMode==='off' && canLaunch()){
+      fire(Math.max(.2,leverPull||.55));
+    }
+    if(e.key.toLowerCase()==='r'){
+      resetGame(false);
+    }
+    if(e.key.toLowerCase()==='s'){
+      saveLayout();
+    }
+  });
+
+  function loop(){
+    const now = performance.now();
+    const dt = Math.min(now - lastFrameTime, 34);
+    lastFrameTime = now;
+
+    updateButtonCharge(now);
+    physics(now, dt);
+
+    if(autoLaunch && editMode==='off' && canLaunch() && performance.now() >= nextAutoAt){
+      fire(autoPower);
+      nextAutoAt = performance.now() + 650;
+    }
+
+    // AI AUTOは精度を優先するため、前の球が盤面から消えてから次を撃つ。
+    // これにより玉同士の衝突で予測軌道が崩れるのを避ける。
+    if(aiAuto && editMode==='off' && canLaunch() && activeBalls.length===0 && performance.now() >= nextAiAt){
+      const plan = planAiShot();
+      aiLastPlan = plan;
+      if(plan){
+        aiTargetIndex = plan.targetIndex;
+        fire(plan.power,{
+          ai:true,
+          targetIndex:plan.targetIndex
+        });
+      }
+      nextAiAt = performance.now() + 260;
+    }
+
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  updatePhysicsSettingsFromUi();
+  stageSelect.value = '0';
+  buildStage(0);
+  updateHud();
+  loop();
+})();
+</script>
+</body>
+</html>

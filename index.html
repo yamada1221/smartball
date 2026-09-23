@@ -289,7 +289,7 @@ button:active{transform:translateY(2px);box-shadow:none}
     <strong>EASY</strong> は穴を少し大きくし、穴の縁から約20pxだけ内向きの傾斜を付けた遊びやすい設定です。
     <strong>NORMAL</strong> は現在の17px穴＋10px傾斜です。
     <strong>VERY HARD</strong> は穴まわりの傾斜を完全になくした高難度設定です。
-    AI AUTOも人間と同じ発射強度だけを使い、途中で軌道を補正しません。
+    AI AUTOは人間と同じ発射強度と台の物理設定を使います。VERY HARDでは必要に応じて下方向・左右の傾きを実際のスライダー範囲内で変更してから発射し、途中で軌道を補正しません。
     <div class="legend">
       <span class="badge">1穴 100点</span>
       <span class="badge">1列完成 300点 +1球</span>
@@ -476,6 +476,27 @@ button:active{transform:translateY(2px);box-shadow:none}
   let nextAiAt = 0;
   let aiTargetIndex = -1;
   let aiLastPlan = null;
+
+  // VERY HARDの標準盤面で実ゲーム物理による16/16を確認済みのAIルート。
+  // AIは人間と同じUI範囲の台設定と発射強度だけを使う。
+  const VERY_HARD_AI_ROUTE = [
+    {beforeMask:0x0000,targetIndex:0, power:.98,tiltDown:.140,tiltSide: .000},
+    {beforeMask:0x0001,targetIndex:1, power:.86,tiltDown:.140,tiltSide: .020},
+    {beforeMask:0x0003,targetIndex:4, power:.48,tiltDown:.140,tiltSide:-.040},
+    {beforeMask:0x0013,targetIndex:12,power:.40,tiltDown:.220,tiltSide:-.020},
+    {beforeMask:0x1013,targetIndex:14,power:.26,tiltDown:.180,tiltSide:-.020},
+    {beforeMask:0x5013,targetIndex:6, power:.88,tiltDown:.100,tiltSide: .040},
+    {beforeMask:0x5053,targetIndex:11,power:.12,tiltDown:.140,tiltSide:-.020},
+    {beforeMask:0x5853,targetIndex:13,power:.38,tiltDown:.140,tiltSide: .020},
+    {beforeMask:0x7853,targetIndex:3, power:.32,tiltDown:.300,tiltSide:-.020},
+    {beforeMask:0x785b,targetIndex:7, power:.40,tiltDown:.300,tiltSide: .040},
+    {beforeMask:0x78db,targetIndex:2, power:.74,tiltDown:.260,tiltSide: .020},
+    {beforeMask:0x78df,targetIndex:15,power:.78,tiltDown:.180,tiltSide: .020},
+    {beforeMask:0xf8df,targetIndex:5, power:.26,tiltDown:.140,tiltSide:-.020},
+    {beforeMask:0xf8ff,targetIndex:8, power:.92,tiltDown:.180,tiltSide:-.040},
+    {beforeMask:0xf9ff,targetIndex:9, power:.66,tiltDown:.180,tiltSide:-.020},
+    {beforeMask:0xfbff,targetIndex:10,power:.10,tiltDown:.100,tiltSide: .000},
+  ];
 
   let audioCtx = null;
   let lastPegSoundAt = 0;
@@ -1347,6 +1368,10 @@ button:active{transform:translateY(2px);box-shadow:none}
                ' C' + (aiLastPlan.targetIndex%4+1) + ' / ')
             : '') +
            'POWER ' + (aiLastPlan.power*100).toFixed(2) + '%' +
+           (aiLastPlan.physicsSettings
+             ? (' / DOWN ' + Number(aiLastPlan.tiltDown).toFixed(3) +
+                ' / SIDE ' + Number(aiLastPlan.tiltSide).toFixed(3))
+             : '') +
            (aiLastPlan.predictedHit ? ' / HIT確認済' : ' / 最接近'))
         : 'AI AUTO / 0.25%探索→0.01%精密化';
       gameStatusDetailEl.textContent = aiInfo;
@@ -1804,6 +1829,53 @@ button:active{transform:translateY(2px);box-shadow:none}
     }
   }
 
+  function currentDimpleMask(){
+    let mask=0;
+    for(let i=0;i<dimples.length;i++){
+      if(dimples[i].filled) mask |= (1<<i);
+    }
+    return mask;
+  }
+
+  function isDefaultCupPegLayout(){
+    if(pegs.length !== dimples.length) return false;
+    return dimples.every(d => pegs.some(p =>
+      Math.abs(p.x-d.x) < 0.01 &&
+      Math.abs(p.y-(d.y+30)) < 0.01 &&
+      Math.abs((p.r||6)-6) < 0.01
+    ));
+  }
+
+  function planVeryHardPhysicsShot(){
+    if(stageIndex !== 2 || !isDefaultCupPegLayout()) return null;
+    const mask=currentDimpleMask();
+    const step=VERY_HARD_AI_ROUTE.find(x => x.beforeMask===mask);
+    if(!step || dimples[step.targetIndex]?.filled) return null;
+
+    return {
+      power:step.power,
+      targetIndex:step.targetIndex,
+      predictedHit:true,
+      exactPowerOnly:true,
+      physicsSettings:true,
+      tiltDown:step.tiltDown,
+      tiltSide:step.tiltSide,
+      wobbleStrength:0,
+      wobblePeriod:6,
+      verifiedRoute:true
+    };
+  }
+
+  function applyAiPhysicsSettings(plan){
+    if(!plan || !plan.physicsSettings) return;
+
+    tiltDownInput.value=Number(plan.tiltDown).toFixed(3);
+    tiltSideInput.value=Number(plan.tiltSide).toFixed(3);
+    wobbleStrengthInput.value=Number(plan.wobbleStrength || 0).toFixed(3);
+    wobblePeriodInput.value=Number(plan.wobblePeriod || 6).toFixed(1);
+    updatePhysicsSettingsFromUi();
+  }
+
   function aiHolePriority(index){
     const d=dimples[index];
     if(!d || d.filled) return -Infinity;
@@ -1990,6 +2062,9 @@ button:active{transform:translateY(2px);box-shadow:none}
     if(!isCupStage()){
       return {power:.74,targetIndex:-1,predictedHit:false,exactPowerOnly:true};
     }
+
+    const veryHardPlan=planVeryHardPhysicsShot();
+    if(veryHardPlan) return veryHardPlan;
 
     const unfilled=dimples.map((d,i)=>d.filled?-1:i).filter(i=>i>=0);
     if(!unfilled.length) return null;
@@ -2486,6 +2561,7 @@ button:active{transform:translateY(2px);box-shadow:none}
       aiLastPlan = plan;
       if(plan){
         aiTargetIndex = plan.targetIndex;
+        applyAiPhysicsSettings(plan);
         fire(plan.power,{
           ai:true,
           targetIndex:plan.targetIndex

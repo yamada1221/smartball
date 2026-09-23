@@ -109,6 +109,36 @@ button:active{transform:translateY(2px);box-shadow:none}
   color:#102916;
   box-shadow:0 4px 0 #276838;
 }
+.game-status{
+  margin:0 0 8px;
+  padding:8px 11px;
+  border:1px solid #ffffff20;
+  border-radius:12px;
+  background:#ffffff0b;
+  min-height:48px;
+}
+.game-status-main{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  color:#f5e5bc;
+  font-size:.82rem;
+  font-weight:800;
+}
+.game-status-main span{min-width:0}
+.game-status-main span:last-child{
+  white-space:nowrap;
+  color:#ffe486;
+}
+.game-status-detail{
+  margin-top:4px;
+  color:#bfefff;
+  font-size:.74rem;
+  line-height:1.3;
+  min-height:1em;
+  overflow-wrap:anywhere;
+}
 .help{
   margin:10px 3px 0;
   color:#d9ccdf;
@@ -186,6 +216,14 @@ button:active{transform:translateY(2px);box-shadow:none}
     <div class="stat"><span>TIME</span><b id="time">--</b></div>
   </div>
 
+  <div class="game-status" aria-live="polite">
+    <div class="game-status-main">
+      <span id="stageStatus">EASY / 20px SLOPE</span>
+      <span id="cupStatus">CUPS 0/16</span>
+    </div>
+    <div id="gameStatusDetail" class="game-status-detail">右下のレバーを引いて発射</div>
+  </div>
+
   <div class="wrap">
     <canvas id="game" width="600" height="800"></canvas>
   </div>
@@ -201,8 +239,9 @@ button:active{transform:translateY(2px);box-shadow:none}
   <div class="controls2">
     <button id="timerMode" class="secondary">通常モード</button>
     <select id="stageSelect">
-      <option value="0">NORMAL・10px傾斜</option>
-      <option value="1">VERY HARD・無傾斜</option>
+      <option value="0">EASY・20px傾斜</option>
+      <option value="1">NORMAL・10px傾斜</option>
+      <option value="2">VERY HARD・無傾斜</option>
     </select>
     <button id="saveLayout" class="info">配置保存</button>
     <button id="clearLayout" class="secondary">配置初期化</button>
@@ -226,8 +265,8 @@ button:active{transform:translateY(2px);box-shadow:none}
     <div class="settings-title">台の物理設定</div>
     <div class="settings-grid">
       <div class="setting">
-        <label for="tiltDown">下方向の傾き <span id="tiltDownValue" class="setting-output">0.160</span></label>
-        <input id="tiltDown" type="range" min="0.100" max="0.300" step="0.001" value="0.160">
+        <label for="tiltDown">下方向の傾き <span id="tiltDownValue" class="setting-output">0.140</span></label>
+        <input id="tiltDown" type="range" min="0.100" max="0.300" step="0.001" value="0.140">
       </div>
       <div class="setting">
         <label for="tiltSide">左右の傾き <span id="tiltSideValue" class="setting-output">0.000</span></label>
@@ -245,10 +284,11 @@ button:active{transform:translateY(2px);box-shadow:none}
   </div>
 
   <div class="help">
-    4×4の16個の窪みを埋めるスマートボールです。穴は前版より半径5px広くしています。右下のレバーは5.00〜100.00%の無段階強度で操作できます。発射レーンを右側へ上がった玉は、上部の外側アーチレールに当たりながら自然に盤面へ入ります。アーチでは玉を固定せず、外側の壁との通常の衝突だけを使います。発射ボタンは短く押すと標準ショット、長押しで強度を調整できます。精密強度欄では0.01%単位で直接指定できます。
+    4×4の16個の窪みを埋めるスマートボールです。右下のレバーは5.00〜100.00%の無段階強度で操作できます。発射レーンを右側へ上がった玉は、上部の外側アーチレールに当たりながら自然に盤面へ入ります。アーチでは玉を固定せず、外側の壁との通常の衝突だけを使います。発射ボタンは短く押すと標準ショット、長押しで強度を調整できます。精密強度欄では0.01%単位で直接指定できます。
     <br><br>
-    <strong>NORMAL</strong> は各穴の縁から約10pxだけ内向きの傾斜があり、人間でも狙った穴へ入りやすい設定です。
-    <strong>VERY HARD</strong> は穴まわりの傾斜を完全になくした従来の高難度設定です。
+    <strong>EASY</strong> は穴を少し大きくし、穴の縁から約20pxだけ内向きの傾斜を付けた遊びやすい設定です。
+    <strong>NORMAL</strong> は現在の17px穴＋10px傾斜です。
+    <strong>VERY HARD</strong> は穴まわりの傾斜を完全になくした高難度設定です。
     AI AUTOも人間と同じ発射強度だけを使い、途中で軌道を補正しません。
     <div class="legend">
       <span class="badge">1穴 100点</span>
@@ -256,7 +296,7 @@ button:active{transform:translateY(2px);box-shadow:none}
       <span class="badge">16穴完成 2000点 +5球</span>
       <span class="badge">AI / 手動とも0.01%精密発射</span>
     </div>
-    <div class="note">各穴の下には釘が1本あります。NORMALの10px傾斜は穴のすぐ近くだけに作用し、穴と穴の間には影響しません。デフォルトは下方向0.160・左右0.000・ゆらぎ0で、左右に台を傾けなくても16穴すべてへ届くよう発射速度を調整しています。VERY HARDでは局所傾斜はありません。</div>
+    <div class="note">各穴の下には釘が1本あります。EASYは半径21pxの穴＋20px局所傾斜、NORMALは半径17px＋10px局所傾斜、VERY HARDは半径17pxで局所傾斜なしです。</div>
   </div>
 </div>
 
@@ -290,6 +330,9 @@ button:active{transform:translateY(2px);box-shadow:none}
   const stageSelect = document.getElementById('stageSelect');
   const saveLayoutBtn = document.getElementById('saveLayout');
   const clearLayoutBtn = document.getElementById('clearLayout');
+  const stageStatusEl = document.getElementById('stageStatus');
+  const cupStatusEl = document.getElementById('cupStatus');
+  const gameStatusDetailEl = document.getElementById('gameStatusDetail');
 
   const W = canvas.width, H = canvas.height;
   const MAX_ACTIVE_BALLS = 40;
@@ -369,11 +412,43 @@ button:active{transform:translateY(2px);box-shadow:none}
   let stageIndex = 0;
 
   function isCupStage(){
+    return stageIndex >= 0 && stageIndex <= 2;
+  }
+
+  function isEasyStage(){
+    return stageIndex === 0;
+  }
+
+  function isNormalStage(){
+    return stageIndex === 1;
+  }
+
+  function hasCupSlope(){
     return stageIndex === 0 || stageIndex === 1;
   }
 
-  function hasFivePxSlope(){
-    return stageIndex === 0;
+  function cupRadius(){
+    return isEasyStage() ? 21 : 17;
+  }
+
+  function cupSlopeWidth(){
+    return isEasyStage() ? 20 : (isNormalStage() ? 10 : 0);
+  }
+
+  function cupSlopeAccel(){
+    return isEasyStage() ? 0.075 : (isNormalStage() ? 0.050 : 0);
+  }
+
+  function cupCaptureDistance(){
+    return isEasyStage() ? 8.5 : 5.6;
+  }
+
+  function cupCaptureSpeed(){
+    return isEasyStage() ? 3.20 : 2.50;
+  }
+
+  function stageRecommendedTiltDown(){
+    return isEasyStage() ? 0.140 : 0.160;
   }
 
   let timerMode = false;
@@ -381,13 +456,14 @@ button:active{transform:translateY(2px);box-shadow:none}
   let lastFrameTime = performance.now();
 
   // 台そのものの物理設定。AIシミュレーションも同じ値を使う。
-  let boardTiltDown = 0.160;
+  let boardTiltDown = 0.140;
   let boardTiltSide = 0.000;
   let wobbleStrength = 0.000;
   let wobblePeriodMs = 6000;
   let wobblePhase = 0;
 
   let leverPull = 0;
+  let firstLaunchHintVisible = true;
   let draggingLever = false;
   let pointerStartY = 0;
   let leverStart = 0;
@@ -573,7 +649,7 @@ button:active{transform:translateY(2px);box-shadow:none}
         dimples.push({
           x: xs[col],
           y: ys[row],
-          r: 17,
+          r: cupRadius(),
           row,
           col,
           filled: false
@@ -594,8 +670,9 @@ button:active{transform:translateY(2px);box-shadow:none}
          dimples.filter(d => d.row===r).every(d => d.filled)){
         dimpleLinesAwarded.add(key);
         addScore(300, true);
-        ballsLeft = Math.min(50, ballsLeft + 1);
-        showOverlay('ROW COMPLETE +300 / +1 BALL', 1100);
+        const rowBonusBalls = isEasyStage() ? 2 : 1;
+        ballsLeft = Math.min(50, ballsLeft + rowBonusBalls);
+        showOverlay('ROW COMPLETE +300 / +' + rowBonusBalls + ' BALL', 1100);
       }
     }
 
@@ -605,8 +682,9 @@ button:active{transform:translateY(2px);box-shadow:none}
          dimples.filter(d => d.col===c).every(d => d.filled)){
         dimpleLinesAwarded.add(key);
         addScore(300, true);
-        ballsLeft = Math.min(50, ballsLeft + 1);
-        showOverlay('COLUMN COMPLETE +300 / +1 BALL', 1100);
+        const colBonusBalls = isEasyStage() ? 2 : 1;
+        ballsLeft = Math.min(50, ballsLeft + colBonusBalls);
+        showOverlay('COLUMN COMPLETE +300 / +' + colBonusBalls + ' BALL', 1100);
       }
     }
 
@@ -621,7 +699,7 @@ button:active{transform:translateY(2px);box-shadow:none}
   }
 
   function buildStage(idx){
-    stageIndex = Math.max(0, Math.min(1, Number(idx) || 0));
+    stageIndex = Math.max(0, Math.min(2, Number(idx) || 0));
     pegs.length = 0;
     bumpers.length = 0;
     pockets.length = 0;
@@ -658,7 +736,7 @@ button:active{transform:translateY(2px);box-shadow:none}
 
   function resetGame(fullRebuild=true){
     score = 0;
-    ballsLeft = 32;
+    ballsLeft = isEasyStage() ? 40 : 32;
     activeBalls = [];
     gameOver = false;
     leverPull = 0;
@@ -703,6 +781,7 @@ button:active{transform:translateY(2px);box-shadow:none}
       power = quantizeStage4Power(power);
     }
     ballsLeft--;
+    firstLaunchHintVisible = false;
 
     activeBalls.push({
       x: 545,
@@ -987,24 +1066,24 @@ button:active{transform:translateY(2px);box-shadow:none}
           b.vy += (mdy / md) * pull;
         }
 
-        // NORMALだけ、穴の縁から外側約10pxに局所的な傾斜を付ける。
-        // VERY HARDではこの処理を完全に使わない。
-        if(hasFivePxSlope()){
+        // EASY/NORMALでは穴のすぐ近くだけ内向きの局所傾斜を付ける。
+        if(hasCupSlope()){
+          const slopeWidth = cupSlopeWidth();
+          const slopeAccel = cupSlopeAccel();
           for(const d of dimples){
             const dx = d.x - b.x;
             const dy = d.y - b.y;
             const dist = Math.hypot(dx,dy);
-            const outer = d.r + 10;
-
+            const outer = d.r + slopeWidth;
             if(dist > 0.5 && dist < outer){
-              const nx = dx / dist;              const ny = dy / dist;
-              const rim = Math.max(0, Math.min(1, (outer - dist) / 10));
-              const accel = 0.050 * rim;
-
+              const nx = dx / dist;
+              const ny = dy / dist;
+              const rim = Math.max(0, Math.min(1, (outer - dist) / slopeWidth));
+              const accel = slopeAccel * rim;
               b.vx += nx * accel;
               b.vy += ny * accel;
-              b.vx *= 0.9992;
-              b.vy *= 0.9992;
+              b.vx *= 0.9990;
+              b.vy *= 0.9990;
             }
           }
         }
@@ -1128,7 +1207,7 @@ button:active{transform:translateY(2px);box-shadow:none}
 
             // 玉とほぼ同じ大きさの窪みなので、高速で縁を横切っただけでは入らない。
             // 中心付近まで落ち込み、速度も十分落ちた時だけ着座したとみなす。
-            if(!d.filled && dist < 5.6 && localSpeed < 2.50){
+            if(!d.filled && dist < cupCaptureDistance() && localSpeed < cupCaptureSpeed()){
               d.filled = true;
               addScore(100, true);
               beep(470,.055,.012);
@@ -1250,6 +1329,41 @@ button:active{transform:translateY(2px);box-shadow:none}
     }
   }
 
+  function updateGameStatus(){
+    const stageName = isEasyStage()
+      ? 'EASY / 20px SLOPE'
+      : (isNormalStage() ? 'NORMAL / 10px SLOPE' : 'VERY HARD / FLAT CUPS');
+
+    stageStatusEl.textContent = editMode !== 'off'
+      ? ('釘編集 / ' + (editTool==='move' ? '移動' : editTool==='add' ? '追加' : '削除'))
+      : (stageName + (timerMode ? ' / TIME ATTACK' : ''));
+
+    cupStatusEl.textContent = 'CUPS ' + dimples.filter(d => d.filled).length + '/16';
+
+    if(aiAuto){
+      const aiInfo = aiLastPlan && isCupStage()
+        ? ((Number.isInteger(aiLastPlan.targetIndex)
+            ? ('R' + (Math.floor(aiLastPlan.targetIndex/4)+1) +
+               ' C' + (aiLastPlan.targetIndex%4+1) + ' / ')
+            : '') +
+           'POWER ' + (aiLastPlan.power*100).toFixed(2) + '%' +
+           (aiLastPlan.predictedHit ? ' / HIT確認済' : ' / 最接近'))
+        : 'AI AUTO / 0.25%探索→0.01%精密化';
+      gameStatusDetailEl.textContent = aiInfo;
+    }else if(firstLaunchHintVisible &&
+             canLaunch() &&
+             activeBalls.length===0 &&
+             !autoLaunch &&
+             !buttonCharging &&
+             !draggingLever &&
+             leverPull===0 &&
+             editMode==='off'){
+      gameStatusDetailEl.textContent = '右下のレバーを引いて発射';
+    }else{
+      gameStatusDetailEl.textContent = '';
+    }
+  }
+
   function roundedRect(x,y,w,h,r){
     ctx.beginPath();
     ctx.roundRect(x,y,w,h,r);
@@ -1273,12 +1387,6 @@ button:active{transform:translateY(2px);box-shadow:none}
     ctx.strokeRect(29,29,W-58,H-58);
 
     ctx.textAlign='center';
-    ctx.fillStyle='#ffe486';
-    ctx.font='900 27px system-ui';
-    ctx.fillText('SMART BALL 4×4',300,72);
-    ctx.fillStyle='#d9c8df';
-    ctx.font='12px system-ui';
-    ctx.fillText('16 CUPS CHALLENGE',300,95);
 
     // launcher lane
     ctx.fillStyle='#0f0d16';
@@ -1401,9 +1509,9 @@ button:active{transform:translateY(2px);box-shadow:none}
     // 4×4 dimple board
     if(isCupStage()){
       for(const d of dimples){
-        if(hasFivePxSlope()){
+        if(hasCupSlope()){
           ctx.beginPath();
-          ctx.arc(d.x,d.y,d.r+10,0,Math.PI*2);
+          ctx.arc(d.x,d.y,d.r+cupSlopeWidth(),0,Math.PI*2);
           ctx.strokeStyle='rgba(225,190,120,0.24)';
           ctx.lineWidth=2;
           ctx.stroke();
@@ -1442,11 +1550,6 @@ button:active{transform:translateY(2px);box-shadow:none}
         }
       }
 
-      const filledCount = dimples.filter(d => d.filled).length;
-      ctx.textAlign='center';
-      ctx.fillStyle='#ffe79a';
-      ctx.font='800 17px system-ui';
-      ctx.fillText('4×4 CUPS  ' + filledCount + '/16', 300, 238);
 
       if(aiAuto && aiTargetIndex >= 0 && dimples[aiTargetIndex] && !dimples[aiTargetIndex].filled){
         const td = dimples[aiTargetIndex];
@@ -1567,12 +1670,12 @@ button:active{transform:translateY(2px);box-shadow:none}
 
     // bottom out
     ctx.fillStyle='#0c0810';
-    ctx.fillRect(34,720,472,38);
+    ctx.fillRect(34,742,472,26);
     ctx.strokeStyle='#5f445f';
-    ctx.strokeRect(34,720,472,38);
+    ctx.strokeRect(34,742,472,26);
     ctx.fillStyle='#8c748f';
-    ctx.font='12px system-ui';
-    ctx.fillText('OUT',270,744);
+    ctx.font='11px system-ui';
+    ctx.fillText('OUT',270,759);
 
     // lever
     const leverTop=560, leverBottom=720;
@@ -1619,7 +1722,7 @@ button:active{transform:translateY(2px);box-shadow:none}
     ctx.textAlign='center';
     ctx.fillStyle='#f5df9b';
     ctx.font='700 10px system-ui';
-    ctx.fillText((quantizeStage4Power(Math.max(.05,leverPull))*100).toFixed(2) + '%', 487, 730);
+    ctx.fillText((quantizeStage4Power(Math.max(.05,leverPull))*100).toFixed(2) + '%', 550, 530);
 
     // balls
     for(const b of activeBalls){
@@ -1643,35 +1746,7 @@ button:active{transform:translateY(2px);box-shadow:none}
       ctx.fill();
     }
 
-    // status labels
-    ctx.textAlign='left';
-    ctx.font='700 14px system-ui';
-if(editMode !== 'off'){
-      ctx.fillStyle = '#bfe7ff';
-      ctx.fillText('釘編集 / ' + (editTool==='move'?'移動':editTool==='add'?'追加':'削除'), 42, 152);
-    }else{
-      ctx.fillStyle = '#d8cce0';
-      const stageName = hasFivePxSlope()
-        ? 'NORMAL / 10px SLOPE'
-        : 'VERY HARD / FLAT CUPS';
-      ctx.fillText(stageName + (timerMode ? ' / TIME ATTACK' : ''), 42, 152);
-      if(aiAuto){
-        ctx.fillStyle='#8ff8ff';
-        ctx.font='700 12px system-ui';
-        const aiInfo = aiLastPlan && stageIndex===3
-          ? ('AI AIM  ' +
-             (Number.isInteger(aiLastPlan.targetIndex)
-               ? ('R' + (Math.floor(aiLastPlan.targetIndex/4)+1) +
-                  ' C' + (aiLastPlan.targetIndex%4+1) + '  ')
-               : '') +
-             'POWER ' + (aiLastPlan.power*100).toFixed(2) + '%' +
-             (aiLastPlan.predictedHit
-               ? (aiLastPlan.lateStageSearch ? '  終盤精密HIT確認済' : '  0.01% HIT確認済')
-               : '  最接近'))
-          : 'AI AUTO  0.25%探索→0.01%精密化';
-        ctx.fillText(aiInfo, 42, 191);
-      }
-    }
+    updateGameStatus();
 
     if(now < overlayUntil && overlayText){
       ctx.textAlign='center';
@@ -1683,27 +1758,15 @@ if(editMode !== 'off'){
       ctx.fillText(overlayText, 300, 281);
     }
 
-    if(canLaunch() &&
-       activeBalls.length===0 &&
-       !autoLaunch &&
-       !aiAuto &&
-       !buttonCharging &&
-       !draggingLever &&
-       leverPull===0 &&
-       editMode==='off'){
-      ctx.fillStyle='#0007';
-      roundedRect(118,112,355,40,14);
-      ctx.fill();
-      ctx.fillStyle='#fff1bf';
-      ctx.textAlign='center';
-      ctx.font='700 14px system-ui';
-      ctx.fillText('右下のレバーを引いて発射！',296,138);
-    }
-
     if(gameOver){
       ctx.fillStyle='#000a';
       ctx.fillRect(0,0,W,H);
-      roundedRect(85,280,430,210,24);
+
+      const veryHardOver = stageIndex === 2;
+      const panelY = veryHardOver ? 245 : 280;
+      const panelH = veryHardOver ? 285 : 210;
+
+      roundedRect(75,panelY,450,panelH,24);
       ctx.fillStyle='#2b2033';
       ctx.fill();
       ctx.strokeStyle='#e3b94f';
@@ -1712,16 +1775,32 @@ if(editMode !== 'off'){
 
       ctx.textAlign='center';
       ctx.fillStyle='#ffe16f';
-      ctx.font='900 37px system-ui';
-      ctx.fillText('GAME OVER',300,340);
+      ctx.font='900 35px system-ui';
+      ctx.fillText('GAME OVER',300,panelY+58);
+
       ctx.fillStyle='#fff';
-      ctx.font='800 25px system-ui';
-      ctx.fillText('SCORE  '+score,300,391);
+      ctx.font='800 24px system-ui';
+      ctx.fillText('SCORE  '+score,300,panelY+105);
+
       ctx.fillStyle='#d8cce0';
-      ctx.font='16px system-ui';
-      ctx.fillText(timerMode ? '60秒の結果です' : '入賞して玉を増やそう',300,430);
-      ctx.font='14px system-ui';
-      ctx.fillText('「やり直す」で再挑戦',300,458);
+      ctx.font='15px system-ui';
+      ctx.fillText(timerMode ? '60秒の結果です' : '入賞して玉を増やそう',300,panelY+141);
+
+      if(veryHardOver){
+        ctx.fillStyle='#f2dca0';
+        ctx.font='700 14px system-ui';
+        ctx.fillText('VERY HARDは台の物理設定を調整して攻略するモードです',300,panelY+178);
+        ctx.fillStyle='#cfc0d7';
+        ctx.font='13px system-ui';
+        ctx.fillText('下方向・左右の傾き、ゆらぎを試してみてください',300,panelY+204);
+        ctx.fillText('16穴へ届く設定を探すことも攻略の一部です',300,panelY+226);
+        ctx.fillStyle='#d8cce0';
+        ctx.font='14px system-ui';
+        ctx.fillText('「やり直す」で再挑戦',300,panelY+258);
+      }else{
+        ctx.font='14px system-ui';
+        ctx.fillText('「やり直す」で再挑戦',300,panelY+169);
+      }
     }
   }
 
@@ -1752,21 +1831,22 @@ if(editMode !== 'off'){
         sim.vx += simBoard.ax/4;
         sim.vy += simBoard.ay/4;
 
-        // NORMALでは実ゲームと同じ5px傾斜をAI側にも反映する。
-        if(hasFivePxSlope()){
+        // AI側も実ゲームと同じ局所傾斜を使う。
+        if(hasCupSlope()){
+          const slopeWidth=cupSlopeWidth();
+          const slopeAccel=cupSlopeAccel();
           for(const d of dimples){
             const dx=d.x-sim.x, dy=d.y-sim.y;
             const dist=Math.hypot(dx,dy);
-            const outer=d.r+10;
-
+            const outer=d.r+slopeWidth;
             if(dist>0.5 && dist<outer){
               const nx=dx/dist, ny=dy/dist;
-              const rim=Math.max(0,Math.min(1,(outer-dist)/10));
-              const accel=0.050*rim;
+              const rim=Math.max(0,Math.min(1,(outer-dist)/slopeWidth));
+              const accel=slopeAccel*rim;
               sim.vx+=nx*accel;
               sim.vy+=ny*accel;
-              sim.vx*=0.9992;
-              sim.vy*=0.9992;
+              sim.vx*=0.9990;
+              sim.vy*=0.9990;
             }
           }
         }
@@ -1799,7 +1879,7 @@ if(editMode !== 'off'){
           const dist=Math.hypot(dx,dy);
           if(!d.filled && dist<minDist[i]) minDist[i]=dist;
 
-          if(!d.filled && sim.vy>-0.6 && dist<5.6 && speed<2.50){
+          if(!d.filled && sim.vy>-0.6 && dist<cupCaptureDistance() && speed<cupCaptureSpeed()){
             return {hitIndex:i,hitSpeed:speed,minDist};
           }
 
@@ -2307,7 +2387,7 @@ if(editMode !== 'off'){
       autoBtn.classList.remove('success');
       autoBtn.textContent = 'AUTO OFF';
       nextAiAt = performance.now() + 120;
-      showOverlay(stageIndex===3 ? 'AI AUTO: TARGET ANALYSIS' : 'AI AUTO ON', 1000);
+      showOverlay(isCupStage() ? 'AI AUTO: TARGET ANALYSIS' : 'AI AUTO ON', 1000);
     }
 
     aiAutoBtn.classList.toggle('success', aiAuto);
@@ -2351,6 +2431,10 @@ if(editMode !== 'off'){
 
   stageSelect.addEventListener('change', ()=>{
     buildStage(Number(stageSelect.value));
+    tiltDownInput.value = stageRecommendedTiltDown().toFixed(3);
+    tiltSideInput.value = '0.000';
+    wobbleStrengthInput.value = '0.000';
+    updatePhysicsSettingsFromUi();
     aiTargetIndex = -1;
     aiLastPlan = null;
     resetGame(false);

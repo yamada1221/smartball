@@ -1,8 +1,9 @@
-name: Deploy mobile preview to GitHub Pages
+name: Deploy smartball to GitHub Pages
 
 on:
   push:
     branches:
+      - main
       - dev/mobile-ui
   workflow_dispatch:
 

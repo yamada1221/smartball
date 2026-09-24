@@ -124,6 +124,15 @@ button,select{
   min-height:48px;
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
+  -webkit-user-select:none !important;
+  user-select:none !important;
+  -webkit-touch-callout:none !important;
+}
+#launch{
+  touch-action:none;
+  -webkit-user-select:none !important;
+  user-select:none !important;
+  -webkit-touch-callout:none !important;
 }
 input,button,select,textarea{font:inherit}
 button{
@@ -2509,7 +2518,12 @@ button:active{transform:translateY(2px);box-shadow:none}
   }
 
   function startButtonCharge(e){
+    if(e && e.preventDefault) e.preventDefault();
     if(!canLaunch() || editMode !== 'off') return;
+    try{
+      const sel = window.getSelection && window.getSelection();
+      if(sel) sel.removeAllRanges();
+    }catch(_){}
     buttonCharging = true;
     buttonChargeStart = performance.now();
     leverPull = .05;
@@ -2559,6 +2573,18 @@ button:active{transform:translateY(2px);box-shadow:none}
   launchBtn.addEventListener('pointerdown', startButtonCharge);
   launchBtn.addEventListener('pointerup', releaseButtonCharge);
   launchBtn.addEventListener('pointercancel', cancelButtonCharge);
+  launchBtn.addEventListener('contextmenu', e => e.preventDefault());
+  launchBtn.addEventListener('selectstart', e => e.preventDefault());
+  launchBtn.addEventListener('dragstart', e => e.preventDefault());
+
+  document.addEventListener('selectionchange', ()=>{
+    const sel = window.getSelection && window.getSelection();
+    if(!sel || sel.rangeCount===0) return;
+    const anchor = sel.anchorNode && (sel.anchorNode.nodeType===1 ? sel.anchorNode : sel.anchorNode.parentElement);
+    if(anchor && launchBtn.contains(anchor)){
+      sel.removeAllRanges();
+    }
+  });
   launchBtn.addEventListener('click', e=>{
     if(suppressLaunchClick){
       e.preventDefault();

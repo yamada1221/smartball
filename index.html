@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>スマートボール 4×4</title>
 <style>
 :root{
@@ -20,8 +20,16 @@ html,body{
   font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
   overscroll-behavior:none;
 }
-body{display:flex;justify-content:center;padding:12px}
-.app{width:min(100%,580px)}
+body{
+  display:flex;
+  justify-content:center;
+  padding:
+    max(10px, env(safe-area-inset-top))
+    max(10px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
+}
+.app{width:min(100%,580px);margin:0 auto}
 .top{
   display:grid;
   grid-template-columns:repeat(4,1fr);
@@ -82,7 +90,11 @@ button,select{
   font-weight:800;
   font-size:.92rem;
   cursor:pointer;
+  min-height:48px;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
 }
+input,button,select,textarea{font:inherit}
 button{
   background:linear-gradient(#ffe37b,#efb82b);
   color:#33220b;
@@ -165,6 +177,38 @@ button:active{transform:translateY(2px);box-shadow:none}
   color:#bfb0c9;
 }
 
+.precision-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+  margin-top:8px;
+  align-items:stretch;
+}
+.precision-box{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  min-height:48px;
+  padding:10px 12px;
+  border-radius:13px;
+  background:#ffffff0d;
+  border:1px solid #ffffff18;
+  color:#e7d9ee;
+  font-size:.88rem;
+  font-weight:700;
+}
+.precision-box input{
+  flex:1;
+  min-width:0;
+  border:1px solid #ffffff24;
+  border-radius:10px;
+  background:#120d17;
+  color:var(--cream);
+  padding:10px 8px;
+  min-height:42px;
+}
+
 .settings-panel{
   margin-top:10px;
   padding:10px 12px;
@@ -201,8 +245,41 @@ button:active{transform:translateY(2px);box-shadow:none}
   color:#ffe7a0;
   font-variant-numeric:tabular-nums;
 }
+@media (max-width:640px){
+  .top{grid-template-columns:repeat(2,1fr)}
+  .controls{grid-template-columns:repeat(3,1fr)}
+  .controls2{grid-template-columns:repeat(2,1fr)}
+}
 @media (max-width:480px){
+  body{
+    padding:
+      max(8px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(14px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+  }
+  .app{width:100%}
+  .top{gap:6px}
+  .stat{padding:6px 5px}
+  .stat span{font-size:.66rem}
+  .stat b{font-size:1.05rem}
+  .controls{grid-template-columns:repeat(2,1fr);gap:7px}
+  .controls2{grid-template-columns:repeat(2,1fr);gap:7px}
+  .precision-row{grid-template-columns:1fr}
   .settings-grid{grid-template-columns:1fr}
+  .game-status-main{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:4px;
+  }
+  .game-status-main span:last-child{white-space:normal}
+  button,select{font-size:.86rem;padding:12px 8px}
+  .help{font-size:.84rem}
+  .legend{font-size:.74rem;gap:6px}
+}
+@media (max-width:360px){
+  .controls,.controls2{grid-template-columns:1fr}
+  .airow button,#precisionFire{width:100%}
 }
 
 </style>

@@ -2509,16 +2509,29 @@ button:active{transform:translateY(2px);box-shadow:none}
       try{launchBtn.releasePointerCapture(e.pointerId)}catch(_){}
     }
 
-    // pointerup後に発生するclickで二重発射しないため。
-    setTimeout(()=>{ suppressLaunchClick = false; }, 0);
+    // タッチ端末ではpointerupの後にclickが別イベントとして発生する。
+    // clickを実際に1回消費するまでフラグを残し、同じ操作で2球出ないようにする。
+    suppressLaunchClick = true;
+  }
+
+  function cancelButtonCharge(e){
+    if(!buttonCharging) return;
+    buttonCharging = false;
+    leverPull = 0;
+    launchBtn.textContent = '発射';
+    suppressLaunchClick = true;
+    if(e && e.pointerId !== undefined){
+      try{launchBtn.releasePointerCapture(e.pointerId)}catch(_){}
+    }
   }
 
   launchBtn.addEventListener('pointerdown', startButtonCharge);
   launchBtn.addEventListener('pointerup', releaseButtonCharge);
-  launchBtn.addEventListener('pointercancel', releaseButtonCharge);
+  launchBtn.addEventListener('pointercancel', cancelButtonCharge);
   launchBtn.addEventListener('click', e=>{
     if(suppressLaunchClick){
       e.preventDefault();
+      suppressLaunchClick = false;
       return;
     }
 

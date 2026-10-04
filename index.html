@@ -944,7 +944,7 @@ button:active{transform:translateY(2px);box-shadow:none}
   }
 
   function canLaunch(){
-    return ballsLeft > 0 && !gameOver && activeBalls.length < MAX_ACTIVE_BALLS;
+    return editMode === 'off' && ballsLeft > 0 && !gameOver && activeBalls.length < MAX_ACTIVE_BALLS;
   }
 
   function fire(power, opts={}){
@@ -2711,6 +2711,9 @@ button:active{transform:translateY(2px);box-shadow:none}
   });
 
   window.addEventListener('keydown', e=>{
+    if(e.defaultPrevented || e.repeat || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
+    const target = e.target;
+    if(target instanceof Element && (target.closest('input, textarea, select, button, a[href]') || target.isContentEditable)) return;
     if(e.code==='Space'){
       e.preventDefault();
       if(editMode==='off' && canLaunch()){
@@ -2764,7 +2767,7 @@ button:active{transform:translateY(2px);box-shadow:none}
   updatePhysicsSettingsFromUi();
   stageSelect.value = '0';
   buildStage(0);
-  updateHud();
+  resetGame(false);
   loop();
 })();
 </script>
